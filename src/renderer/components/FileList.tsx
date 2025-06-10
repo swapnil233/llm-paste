@@ -24,7 +24,7 @@ const FileList: React.FC<FileListProps> = ({
   const { showToast } = useToast();
   const [isDragOver, setIsDragOver] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("name");
+  const [sortBy, setSortBy] = useState<SortOption>("tokenCount");
   const dragCounterRef = useRef(0);
 
   const hasFiles = files.length > 0;
