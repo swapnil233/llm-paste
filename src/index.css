@@ -21,5 +21,6 @@
 .preview-content {
   white-space: pre-wrap;
   font-family: "Courier New", Courier, monospace;
+  font-size: 16px;
   line-height: 1.4;
 }

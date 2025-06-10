@@ -125,10 +125,10 @@ class UIManager {
 
             this.elements.fileList.innerHTML = files.map((filePath, index) => `
                 <li class="flex justify-between items-center p-3 bg-gray-50 rounded border hover:bg-gray-100 transition-colors">
-                    <span class="text-xs text-gray-700 truncate flex-1 font-mono line-clamp-1" title="${filePath}" aria-label="File path: ${filePath}">
+                    <span class="text-sm text-gray-700 truncate flex-1 font-mono line-clamp-1" title="${filePath}" aria-label="File path: ${filePath}">
                         ${filePath}
                     </span>
-                    <button data-index="${index}" class="ml-3 text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded hover:bg-red-50 transition-colors" aria-label="Remove file">
+                    <button data-index="${index}" class="ml-3 text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 transition-colors" aria-label="Remove file">
                         ✕
                     </button>
                 </li>
@@ -173,7 +173,7 @@ class UIManager {
         if (duration > 0) {
             setTimeout(() => {
                 this.elements.resultP.textContent = '';
-                this.elements.resultP.className = 'text-sm';
+                this.elements.resultP.className = 'text-sm text-gray-600';
             }, duration);
         }
     }
