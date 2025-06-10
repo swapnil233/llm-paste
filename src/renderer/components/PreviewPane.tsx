@@ -5,6 +5,9 @@ import React, {
   useRef,
   useEffect,
 } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
 import { useElectron } from "../hooks/useElectron";
 import { useToast } from "../contexts/ToastContext";
 import type { TokenLimit } from "../types";
@@ -47,12 +50,16 @@ const PreviewPane: React.FC<PreviewPaneProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [showNavigation, setShowNavigation] = useState(false);
   const [currentSection, setCurrentSection] = useState<string>("");
-  const previewRef = useRef<HTMLPreElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const hasContent = content.length > 0;
   const percentage = Math.min((tokenCount / currentTokenLimit) * 100, 100);
   const totalLines = content.split("\n").length;
   const isLargeContent = totalLines > 1000;
+
+  // Performance optimization: disable syntax highlighting for very large content
+  const MAX_LINES_FOR_HIGHLIGHT = 8000;
+  const shouldHighlight = totalLines < MAX_LINES_FOR_HIGHLIGHT;
 
   // Create file sections from the actual file list instead of parsing content
   const fileSections = useMemo((): FileSection[] => {
@@ -332,12 +339,31 @@ const PreviewPane: React.FC<PreviewPaneProps> = ({
         {/* Main Content */}
         <div className="flex-1 overflow-hidden p-4">
           {hasContent ? (
-            <pre
-              className="preview-content h-full overflow-y-auto p-4 text-base bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700"
+            <div
+              className="preview-content h-full overflow-y-auto text-base bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-4"
               ref={previewRef}
             >
-              {content}
-            </pre>
+              {shouldHighlight ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                  components={{
+                    pre: ({ ...props }) => (
+                      <pre
+                        {...props}
+                        className="overflow-x-auto rounded bg-gray-800 text-gray-100 p-4 my-4"
+                      />
+                    ),
+                  }}
+                >
+                  {content}
+                </ReactMarkdown>
+              ) : (
+                <pre className="preview-content-raw whitespace-pre-wrap font-mono text-sm p-4">
+                  {content}
+                </pre>
+              )}
+            </div>
           ) : (
             <div className="text-base text-gray-500 dark:text-gray-400 text-center py-8">
               Combined content will appear here when you select files

@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import highlight.js theme for syntax highlighting */
+@import "highlight.js/styles/github-dark.css";
+
 /* Custom component classes using @apply for consistency */
 @layer components {
   .btn-primary {
@@ -39,6 +42,49 @@
   font-family: "Courier New", Courier, monospace;
   font-size: 16px;
   line-height: 1.4;
+}
+
+/* Raw content fallback for very large files */
+.preview-content-raw {
+  white-space: pre-wrap;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 16px;
+  line-height: 1.4;
+  color: rgb(243 244 246); /* gray-100 */
+  background-color: rgb(31 41 55); /* gray-800 */
+}
+
+/* Custom styling for syntax highlighted code blocks */
+.hljs {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Override some highlight.js styles to match our design */
+.preview-content .hljs {
+  background: transparent !important;
+}
+
+.preview-content pre {
+  overflow-x: auto;
+  border-radius: 0.375rem;
+  background-color: rgb(31 41 55) !important; /* gray-800 */
+  color: rgb(243 244 246) !important; /* gray-100 */
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+/* Styling for markdown content in preview */
+.preview-content p {
+  margin: 0.5rem 0;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 16px;
+  line-height: 1.4;
+  color: rgb(75 85 99); /* gray-600 for light mode */
+}
+
+.dark .preview-content p {
+  color: rgb(209 213 219); /* gray-300 for dark mode */
 }
 
 /* Custom scrollbar for dark mode */
