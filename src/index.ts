@@ -40,6 +40,36 @@ app.whenReady().then(() => {
   ipcMain.handle('dialog:openFiles', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
+      filters: [
+        {
+          name: 'Code Files',
+          extensions: [
+            // Web Development
+            'js', 'jsx', 'ts', 'tsx', 'html', 'htm', 'css', 'scss', 'sass', 'less',
+            'vue', 'svelte', 'astro', 'json', 'xml', 'yaml', 'yml', 'toml',
+            // Programming Languages
+            'py', 'pyx', 'pyi', 'pyw', 'java', 'kt', 'kts', 'scala', 'groovy',
+            'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'hxx', 'cs', 'vb', 'fs', 'fsx',
+            'go', 'rs', 'swift', 'rb', 'php', 'pl', 'pm', 'r', 'R', 'jl',
+            'dart', 'elm', 'hs', 'lhs', 'ml', 'mli', 'f', 'f90', 'f95',
+            // Shell & Config
+            'sh', 'bash', 'zsh', 'fish', 'bat', 'cmd', 'ps1', 'psm1',
+            'dockerfile', 'makefile', 'mk', 'cmake', 'gradle', 'build',
+            'env', 'ini', 'conf', 'config', 'properties', 'cfg',
+            // Documentation & Markup
+            'md', 'markdown', 'mdx', 'rst', 'adoc', 'asciidoc', 'tex', 'txt',
+            // Database & Query
+            'sql', 'nosql', 'cypher', 'sparql', 'graphql', 'gql',
+            // Other
+            'lock', 'gitignore', 'gitattributes', 'editorconfig', 'eslintrc',
+            'prettierrc', 'babelrc', 'tsconfig', 'jsconfig', 'webpack'
+          ]
+        },
+        {
+          name: 'All Files',
+          extensions: ['*']
+        }
+      ]
     });
     return canceled ? [] : filePaths;
   });
