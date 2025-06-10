@@ -338,7 +338,16 @@ const PreviewPane: React.FC<PreviewPaneProps> = ({
 
         {/* Main Content */}
         <div className="flex-1 overflow-hidden p-4">
-          {hasContent ? (
+          {isLoading ? (
+            <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <div className="text-base text-gray-600 dark:text-gray-400">
+                  Loading content...
+                </div>
+              </div>
+            </div>
+          ) : hasContent ? (
             <div
               className="preview-content h-full overflow-y-auto text-base bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-4"
               ref={previewRef}
