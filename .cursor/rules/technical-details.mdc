@@ -1,0 +1,75 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Technical Stack & Implementation Details
+
+This is an **Electron desktop application** built with modern web technologies and a comprehensive development setup.
+
+## Core Tech Stack
+
+### Frontend Technologies
+- **Electron 36.4.0** - Cross-platform desktop app framework
+- **TypeScript** - Type-safe JavaScript development
+- **Tailwind CSS** - Utility-first CSS framework for styling
+- **HTML5** - Standard markup for the user interface
+
+### Build System & Tooling
+- **Webpack** - Module bundler with custom configurations
+  - [webpack.main.config.ts](mdc:webpack.main.config.ts) - Main process configuration
+  - [webpack.renderer.config.ts](mdc:webpack.renderer.config.ts) - Renderer process configuration
+  - [webpack.rules.ts](mdc:webpack.rules.ts) - Webpack loaders and rules
+  - [webpack.plugins.ts](mdc:webpack.plugins.ts) - Webpack plugins configuration
+- **Electron Forge** - Complete toolchain for packaging and distributing Electron apps
+- **PostCSS + Autoprefixer** - CSS processing and vendor prefixing
+
+### Development Tools
+- **ESLint** - Code linting with TypeScript support
+- **Fork TS Checker** - TypeScript type checking in separate process
+- **ts-node** - TypeScript execution for build scripts
+
+## Key Dependencies
+
+### Runtime Dependencies
+- **tiktoken** - OpenAI's tokenizer for accurate GPT token counting
+- **electron-squirrel-startup** - Handles Squirrel.Windows startup events
+
+### Development Dependencies
+- Multiple **@electron-forge** packages for building, packaging, and distribution
+- **CSS/Style loaders** for processing Tailwind CSS
+- **TypeScript tooling** for type checking and compilation
+
+## Project Structure
+
+### Main Application Files
+- [src/index.ts](mdc:src/index.ts) - **Main Electron process** - handles app lifecycle, window creation, and file operations
+- [src/renderer.ts](mdc:src/renderer.ts) - **Renderer process** - frontend logic, UI interactions, and file management
+- [src/preload.ts](mdc:src/preload.ts) - **Preload script** - secure bridge between main and renderer processes
+- [src/index.html](mdc:src/index.html) - **Main UI template** with two-panel layout
+- [src/index.css](mdc:src/index.css) - **Custom styles** and Tailwind CSS imports
+
+### Configuration Files
+- [tsconfig.json](mdc:tsconfig.json) - TypeScript compiler configuration
+- [tailwind.config.js](mdc:tailwind.config.js) - Tailwind CSS configuration
+- [postcss.config.js](mdc:postcss.config.js) - PostCSS configuration
+- [forge.config.ts](mdc:forge.config.ts) - Electron Forge packaging and distribution config
+- [.eslintrc.json](mdc:.eslintrc.json) - ESLint rules and configuration
+
+## Architecture Pattern
+
+### Electron Security Model
+- Uses **context isolation** and **preload scripts** for secure IPC communication
+- Separates main process (Node.js) from renderer process (browser environment)
+- File system operations handled securely in main process
+
+### UI Architecture
+- **Two-panel responsive design** using CSS Grid and Flexbox
+- **Real-time updates** through efficient DOM manipulation
+- **State management** handled in renderer process with immediate UI feedback
+
+## Build & Distribution
+- **Multi-platform builds** configured through Electron Forge
+- **Webpack optimization** for both development and production
+- **Auto-packaging** for Windows (Squirrel), macOS, and Linux (deb/rpm)
+
