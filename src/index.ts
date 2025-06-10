@@ -3,6 +3,11 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { encoding_for_model } from 'tiktoken';
 
+// Set the correct path for tiktoken WASM files in packaged app
+if (app.isPackaged) {
+  process.env.TIKTOKEN_WASM_PATH = path.join(process.resourcesPath, 'tiktoken_bg.wasm');
+}
+
 // TypeScript interfaces for better type safety
 interface FilePreviewResult {
   content: string;
