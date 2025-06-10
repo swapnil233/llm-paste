@@ -1,20 +1,18 @@
 import React, { useState, useCallback, useRef } from "react";
 import { useElectron } from "../hooks/useElectron";
 import { useToast } from "../contexts/ToastContext";
-import type { DragDropFile } from "../types";
+import type { DragDropFile, AppFile } from "../types";
 
 interface FileListProps {
-  selectedFiles: string[];
-  dragDropFiles: DragDropFile[];
+  files: AppFile[];
   onFilesSelected: (files: string[]) => void;
   onDragDropFilesAdded: (files: DragDropFile[]) => void;
-  onRemoveFile: (index: number) => void;
+  onRemoveFile: (fileId: string) => void;
   onClearAll: () => void;
 }
 
 const FileList: React.FC<FileListProps> = ({
-  selectedFiles,
-  dragDropFiles,
+  files,
   onFilesSelected,
   onDragDropFilesAdded,
   onRemoveFile,
@@ -25,8 +23,7 @@ const FileList: React.FC<FileListProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
 
-  const allFiles = [...selectedFiles, ...dragDropFiles.map((f) => f.name)];
-  const hasFiles = allFiles.length > 0;
+  const hasFiles = files.length > 0;
 
   const handleSelectFiles = useCallback(async () => {
     try {
@@ -240,7 +237,7 @@ const FileList: React.FC<FileListProps> = ({
       <div className="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
         <div className="flex justify-between items-center mb-3">
           <span className="text-base font-medium text-gray-700 dark:text-gray-300">
-            Selected Files ({allFiles.length})
+            Selected Files ({files.length})
           </span>
           <button
             onClick={onClearAll}
@@ -278,19 +275,19 @@ const FileList: React.FC<FileListProps> = ({
       >
         {hasFiles ? (
           <ul className="text-base space-y-1 p-4 h-full overflow-y-auto">
-            {allFiles.map((filePath, index) => (
+            {files.map((file) => (
               <li
-                key={`${filePath}-${index}`}
+                key={file.id}
                 className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               >
                 <span
                   className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1 font-mono"
-                  title={filePath}
+                  title={file.path}
                 >
-                  {filePath}
+                  {file.path}
                 </span>
                 <button
-                  onClick={() => onRemoveFile(index)}
+                  onClick={() => onRemoveFile(file.id)}
                   className="ml-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                   aria-label="Remove file"
                 >

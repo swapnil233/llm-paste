@@ -6,16 +6,15 @@ import FileList from "./FileList";
 import PreviewPane from "./PreviewPane";
 import ResizeHandle from "./ResizeHandle";
 import Toast from "./Toast";
-import type { DragDropFile, FilePreviewResult } from "../types";
+import type { DragDropFile, FilePreviewResult, AppFile } from "../types";
 
 const App: React.FC = () => {
   const api = useElectron();
   const { toggleTheme } = useTheme();
   const pendingPreviewRef = useRef<Promise<FilePreviewResult> | null>(null);
 
-  // State management
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-  const [dragDropFiles, setDragDropFiles] = useState<DragDropFile[]>([]);
+  // Unified file state management
+  const [files, setFiles] = useState<AppFile[]>([]);
   const [previewContent, setPreviewContent] = useState("");
   const [tokenCount, setTokenCount] = useState(0);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -24,7 +23,7 @@ const App: React.FC = () => {
   // Generate preview whenever files change
   useEffect(() => {
     const generatePreview = async () => {
-      if (selectedFiles.length === 0 && dragDropFiles.length === 0) {
+      if (files.length === 0) {
         setPreviewContent("");
         setTokenCount(0);
         return;
@@ -32,6 +31,14 @@ const App: React.FC = () => {
 
       setIsLoadingPreview(true);
       try {
+        // Convert unified files back to the format expected by the API
+        const selectedFiles = files
+          .filter((f) => f.type === "selected")
+          .map((f) => f.path);
+        const dragDropFiles = files
+          .filter((f) => f.type === "dropped" && f.content !== undefined)
+          .map((f) => ({ name: f.path, content: f.content as string }));
+
         const previewPromise = api.generatePreview(
           selectedFiles,
           dragDropFiles
@@ -57,44 +64,47 @@ const App: React.FC = () => {
     };
 
     generatePreview();
-  }, [selectedFiles, dragDropFiles, api]);
+  }, [files, api]);
 
-  // Handle file operations
-  const handleFilesSelected = useCallback((files: string[]) => {
-    setSelectedFiles((prev) => {
-      const newFiles = files.filter((file) => !prev.includes(file));
+  // When selecting files
+  const handleFilesSelected = useCallback((paths: string[]) => {
+    setFiles((prev) => {
+      const newFiles = paths
+        .filter((path) => !prev.some((f) => f.path === path)) // Deduplicate
+        .map((path) => ({
+          id: `file-${Date.now()}-${Math.random()}`,
+          path,
+          type: "selected" as const,
+        }));
       return [...prev, ...newFiles];
     });
   }, []);
 
-  const handleDragDropFilesAdded = useCallback((files: DragDropFile[]) => {
-    setDragDropFiles((prev) => {
-      const newFiles = files.filter(
-        (file) => !prev.some((existing) => existing.name === file.name)
-      );
-      return [...prev, ...newFiles];
-    });
-  }, []);
-
-  const handleRemoveFile = useCallback(
-    (index: number) => {
-      const totalRegularFiles = selectedFiles.length;
-
-      if (index < totalRegularFiles) {
-        // Removing a regular file
-        setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-      } else {
-        // Removing a drag-and-drop file
-        const dragIndex = index - totalRegularFiles;
-        setDragDropFiles((prev) => prev.filter((_, i) => i !== dragIndex));
-      }
+  // When dropping files
+  const handleDragDropFilesAdded = useCallback(
+    (droppedFiles: DragDropFile[]) => {
+      setFiles((prev) => {
+        const newFiles = droppedFiles
+          .filter((dFile) => !prev.some((f) => f.path === dFile.name)) // Deduplicate
+          .map((dFile) => ({
+            id: `drop-${Date.now()}-${Math.random()}`,
+            path: dFile.name,
+            content: dFile.content,
+            type: "dropped" as const,
+          }));
+        return [...prev, ...newFiles];
+      });
     },
-    [selectedFiles.length]
+    []
   );
 
+  // Removing a file is now much simpler and more robust
+  const handleRemoveFile = useCallback((fileId: string) => {
+    setFiles((prev) => prev.filter((f) => f.id !== fileId));
+  }, []);
+
   const handleClearAll = useCallback(() => {
-    setSelectedFiles([]);
-    setDragDropFiles([]);
+    setFiles([]);
   }, []);
 
   return (
@@ -141,8 +151,7 @@ const App: React.FC = () => {
             style={{ width: "50%", minWidth: "300px", maxWidth: "70%" }}
           >
             <FileList
-              selectedFiles={selectedFiles}
-              dragDropFiles={dragDropFiles}
+              files={files}
               onFilesSelected={handleFilesSelected}
               onDragDropFilesAdded={handleDragDropFilesAdded}
               onRemoveFile={handleRemoveFile}

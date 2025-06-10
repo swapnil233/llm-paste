@@ -13,6 +13,14 @@ export interface DragDropFile {
     content: string;
 }
 
+// New unified file type for state management
+export interface AppFile {
+    id: string;
+    path: string; // For both selected and dropped files
+    content?: string; // Only for dropped files
+    type: 'selected' | 'dropped';
+}
+
 export interface ToastMessage {
     id: string;
     message: string;
