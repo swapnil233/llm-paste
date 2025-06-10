@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('api', {
     selectFiles: () => ipcRenderer.invoke('dialog:openFiles'),
-    addFile: () => ipcRenderer.invoke('dialog:addFile'),
-    combineFiles: (files: string[]) => ipcRenderer.invoke('files:combine', files),
+    generatePreview: (files: string[]) => ipcRenderer.invoke('files:generatePreview', files),
+    combineFiles: (content: string) => ipcRenderer.invoke('files:combine', content),
+    copyToClipboard: (text: string) => ipcRenderer.invoke('clipboard:writeText', text),
 });

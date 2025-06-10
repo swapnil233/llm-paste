@@ -5,3 +5,10 @@
 .btn {
   @apply bg-gray-200 hover:bg-gray-300 text-sm font-medium py-2 px-4 rounded transition;
 }
+
+.preview-content {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: "Monaco", "Menlo", "Consolas", monospace;
+  line-height: 1.4;
+}

@@ -4,29 +4,55 @@
     <meta charset="UTF-8" />
     <title>Combine Tool</title>
   </head>
-  <body class="h-screen flex flex-col items-center justify-center bg-gray-100">
-    <div class="w-full max-w-2xl bg-white shadow rounded-xl p-6 space-y-4">
-      <h1 class="text-xl font-semibold text-center">File Combiner</h1>
-      <p class="text-sm text-gray-600 text-center">Add files from different folders, then combine them all at once</p>
+  <body class="h-screen flex flex-col bg-gray-100">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b px-6 py-4">
+      <h1 class="text-xl font-semibold text-gray-800">File Combiner</h1>
+      <p class="text-sm text-gray-600">Select files from different folders and preview the combined output</p>
+    </div>
 
-      <!-- Selected files list -->
-      <div class="border rounded p-3 bg-gray-50">
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-sm font-medium text-gray-700">Selected Files (<span id="fileCount">0</span>)</span>
-          <button id="clearBtn" class="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded border border-red-200 hover:bg-red-50">Clear All</button>
+    <!-- Main Content -->
+    <div class="flex-1 flex overflow-hidden">
+      <!-- Left Panel - File Selection -->
+      <div class="w-1/2 bg-white border-r flex flex-col">
+        <div class="p-4 border-b bg-gray-50">
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-sm font-medium text-gray-700">Selected Files (<span id="fileCount">0</span>)</span>
+            <button id="clearBtn" class="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded border border-red-200 hover:bg-red-50">Clear All</button>
+          </div>
+          <button id="selectBtn" class="w-full btn bg-blue-600 text-white hover:bg-blue-700">Select Files</button>
         </div>
-        <ul id="fileList" class="text-sm space-y-1 max-h-48 overflow-y-auto"></ul>
-        <div id="emptyState" class="text-sm text-gray-500 text-center py-4">No files selected yet. Click "Add File" to get started.</div>
+        
+        <div class="flex-1 overflow-hidden">
+          <ul id="fileList" class="text-sm space-y-1 p-4 h-full overflow-y-auto"></ul>
+          <div id="emptyState" class="text-sm text-gray-500 text-center py-8">No files selected yet. Click "Select Files" to get started.</div>
+        </div>
       </div>
 
-      <!-- Action buttons -->
-      <div class="flex gap-2">
-        <button id="addFileBtn" class="flex-1 btn bg-blue-600 text-white hover:bg-blue-700">Add File</button>
-        <button id="selectBtn" class="flex-1 btn">Select Multiple</button>
-        <button id="combineBtn" class="flex-1 btn bg-indigo-600 text-white hover:bg-indigo-700">Combine</button>
+      <!-- Right Panel - Preview -->
+      <div class="w-1/2 bg-gray-50 flex flex-col">
+        <div class="p-4 border-b bg-white">
+          <div class="flex justify-between items-center mb-3">
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-medium text-gray-700">Preview</span>
+              <span id="tokenCount" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">0 tokens</span>
+            </div>
+            <div class="flex gap-2">
+              <button id="copyBtn" class="btn bg-green-600 text-white hover:bg-green-700 text-xs">Copy to Clipboard</button>
+              <button id="saveBtn" class="btn bg-indigo-600 text-white hover:bg-indigo-700 text-xs">Save to Desktop</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex-1 overflow-hidden">
+          <div id="previewContent" class="preview-content h-full overflow-y-auto p-4 text-xs bg-white m-4 rounded border"></div>
+          <div id="previewEmpty" class="text-sm text-gray-500 text-center py-8">Combined content will appear here when you select files</div>
+        </div>
       </div>
+    </div>
 
-      <!-- Result info -->
+    <!-- Status Bar -->
+    <div class="bg-white border-t px-6 py-2">
       <p id="result" class="text-xs text-gray-600"></p>
     </div>
   </body>
