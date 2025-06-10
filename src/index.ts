@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { encoding_for_model } from 'tiktoken';
 import windowStateKeeper from 'electron-window-state';
+import { IGNORED_FILES } from './constants/ignored';
 
 // Set the correct path for tiktoken WASM files in packaged app
 if (app.isPackaged) {
@@ -78,6 +79,9 @@ function walkDir(dir: string): string[] {
         if (IGNORED_DIRS.has(entry.name)) return [];
         return walkDir(fullPath); // recurse
       }
+
+      // Check if file should be ignored (case-insensitive)
+      if (IGNORED_FILES.has(entry.name.toLowerCase())) return [];
 
       const ext = path.extname(entry.name).slice(1).toLowerCase();
       const isCodeFile =
@@ -167,7 +171,9 @@ app.whenReady().then(() => {
         }
       ]
     });
-    return canceled ? [] : filePaths;
+    return canceled
+      ? []
+      : filePaths.filter(p => !IGNORED_FILES.has(path.basename(p).toLowerCase()));
   });
 
   ipcMain.handle('dialog:openFolders', async (): Promise<string[]> => {
