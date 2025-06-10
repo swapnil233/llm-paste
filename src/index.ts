@@ -40,6 +40,57 @@ function getUniqueExistingFiles(files: string[]): Set<string> {
   );
 }
 
+// Recursively gather code files in a folder
+const CODE_EXTENSIONS = new Set<string>([
+  // Web Development
+  'js', 'jsx', 'ts', 'tsx', 'html', 'htm', 'css', 'scss', 'sass', 'less',
+  'vue', 'svelte', 'astro', 'json', 'xml', 'yaml', 'yml', 'toml',
+  // Programming Languages
+  'py', 'pyx', 'pyi', 'pyw', 'java', 'kt', 'kts', 'scala', 'groovy',
+  'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'hxx', 'cs', 'vb', 'fs', 'fsx',
+  'go', 'rs', 'swift', 'rb', 'php', 'pl', 'pm', 'r', 'R', 'jl',
+  'dart', 'elm', 'hs', 'lhs', 'ml', 'mli', 'f', 'f90', 'f95',
+  // Shell & Config
+  'sh', 'bash', 'zsh', 'fish', 'bat', 'cmd', 'ps1', 'psm1',
+  'dockerfile', 'makefile', 'mk', 'cmake', 'gradle', 'build',
+  'env', 'ini', 'conf', 'config', 'properties', 'cfg',
+  // Documentation & Markup
+  'md', 'markdown', 'mdx', 'rst', 'adoc', 'asciidoc', 'tex', 'txt',
+  // Database & Query
+  'sql', 'nosql', 'cypher', 'sparql', 'graphql', 'gql',
+  // Other
+  'lock', 'gitignore', 'gitattributes', 'editorconfig', 'eslintrc',
+  'prettierrc', 'babelrc', 'tsconfig', 'jsconfig', 'webpack'
+]);
+
+const IGNORED_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', 'out', '.cache', 'coverage', '.nyc_output', 'tmp', 'temp']);
+
+function walkDir(dir: string): string[] {
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    return entries.flatMap((entry) => {
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        if (IGNORED_DIRS.has(entry.name)) return [];
+        return walkDir(fullPath); // recurse
+      }
+
+      const ext = path.extname(entry.name).slice(1).toLowerCase();
+      const isCodeFile =
+        CODE_EXTENSIONS.has(ext) ||
+        ext === '' || // e.g. Dockerfile, Makefile
+        /^(dockerfile|makefile|readme)/i.test(entry.name);
+
+      return isCodeFile ? [fullPath] : [];
+    });
+  } catch (error) {
+    console.error(`Error reading directory ${dir}:`, error);
+    return [];
+  }
+}
+
 const createWindow = (): void => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -70,7 +121,7 @@ app.whenReady().then(() => {
   // IPC handlers
   ipcMain.handle('dialog:openFiles', async (): Promise<string[]> => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
-      properties: ['openFile', 'multiSelections'],
+      properties: ['openFile', 'openDirectory', 'multiSelections'],
       filters: [
         {
           name: 'Code Files',
@@ -102,7 +153,14 @@ app.whenReady().then(() => {
         }
       ]
     });
-    return canceled ? [] : filePaths;
+    if (canceled) return [];
+
+    const allFiles = filePaths.flatMap((p) =>
+      fs.statSync(p).isDirectory() ? walkDir(p) : [p]
+    );
+
+    // de-dupe & make sure they still exist
+    return Array.from(getUniqueExistingFiles(allFiles));
   });
 
   // Handler to generate combined content and count tokens
@@ -151,6 +209,43 @@ app.whenReady().then(() => {
       tokenCount,
       fileCount: uniqueFiles.size + dragDropFiles.length
     };
+  });
+
+  // Handler to calculate individual file token counts
+  ipcMain.handle('files:getTokenCounts', async (_e, filePaths: string[], dragDropFiles: Array<{ name: string, content: string }> = []): Promise<Record<string, number>> => {
+    const tokenCounts: Record<string, number> = {};
+
+    try {
+      const encoding = encoding_for_model('gpt-4');
+
+      // Calculate token counts for selected files
+      for (const filePath of filePaths) {
+        if (fs.existsSync(filePath)) {
+          try {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const ext = path.extname(filePath).slice(1);
+            const formattedContent = `${filePath}\n\`\`\`${ext}\n${content.trimEnd()}\n\`\`\`\n\n`;
+            tokenCounts[filePath] = encoding.encode(formattedContent).length;
+          } catch (error) {
+            console.error(`Error reading file ${filePath}:`, error);
+            tokenCounts[filePath] = 0;
+          }
+        }
+      }
+
+      // Calculate token counts for drag-and-drop files
+      for (const fileData of dragDropFiles) {
+        const ext = path.extname(fileData.name).slice(1);
+        const formattedContent = `${fileData.name}\n\`\`\`${ext}\n${fileData.content.trimEnd()}\n\`\`\`\n\n`;
+        tokenCounts[fileData.name] = encoding.encode(formattedContent).length;
+      }
+
+      encoding.free();
+    } catch (error) {
+      console.error('Error counting tokens:', error);
+    }
+
+    return tokenCounts;
   });
 
   ipcMain.handle('files:combine', async (_e, content: string): Promise<CombineResult> => {

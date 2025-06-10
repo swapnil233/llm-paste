@@ -4,6 +4,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 interface ElectronAPI {
     selectFiles: () => Promise<string[]>;
     generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => Promise<{ content: string; tokenCount: number; fileCount: number }>;
+    getTokenCounts: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => Promise<Record<string, number>>;
     combineFiles: (content: string) => Promise<{ dest: string }>;
     copyToClipboard: (text: string) => Promise<boolean>;
     shouldUseDarkColors: () => Promise<boolean>;
@@ -14,6 +15,7 @@ interface ElectronAPI {
 const api: ElectronAPI = {
     selectFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog:openFiles'),
     generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => ipcRenderer.invoke('files:generatePreview', files, dragDropFiles),
+    getTokenCounts: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => ipcRenderer.invoke('files:getTokenCounts', files, dragDropFiles),
     combineFiles: (content: string) => ipcRenderer.invoke('files:combine', content),
     copyToClipboard: (text: string) => ipcRenderer.invoke('clipboard:writeText', text),
     shouldUseDarkColors: () => ipcRenderer.invoke('theme:shouldUseDarkColors'),

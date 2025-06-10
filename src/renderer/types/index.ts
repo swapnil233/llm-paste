@@ -19,6 +19,7 @@ export interface AppFile {
     path: string; // For both selected and dropped files
     content?: string; // Only for dropped files
     type: 'selected' | 'dropped';
+    tokenCount?: number; // Token count for this individual file
 }
 
 export interface ToastMessage {
@@ -34,6 +35,8 @@ export interface TokenLimit {
 }
 
 export type ThemeMode = 'system' | 'light' | 'dark';
+
+export type SortOption = 'name' | 'tokenCount' | 'type' | 'size';
 
 // Extend Window interface to include our API
 declare global {

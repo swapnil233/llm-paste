@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useMemo } from "react";
 import { useElectron } from "../hooks/useElectron";
 import { useToast } from "../contexts/ToastContext";
-import type { DragDropFile, AppFile } from "../types";
+import type { DragDropFile, AppFile, SortOption } from "../types";
 
 interface FileListProps {
   files: AppFile[];
@@ -21,9 +21,47 @@ const FileList: React.FC<FileListProps> = ({
   const api = useElectron();
   const { showToast } = useToast();
   const [isDragOver, setIsDragOver] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("name");
   const dragCounterRef = useRef(0);
 
   const hasFiles = files.length > 0;
+
+  // Filter and sort files
+  const filteredAndSortedFiles = useMemo(() => {
+    let filtered = files;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = files.filter((file) =>
+        file.path.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.path.localeCompare(b.path);
+        case "tokenCount":
+          return (b.tokenCount || 0) - (a.tokenCount || 0); // Descending
+        case "type":
+          if (a.type === b.type) return a.path.localeCompare(b.path);
+          return a.type === "selected" ? -1 : 1; // Selected files first
+        case "size": {
+          // For drag-drop files, use content length; for selected files, approximate
+          const sizeA = a.content?.length || a.path.length;
+          const sizeB = b.content?.length || b.path.length;
+          return sizeB - sizeA; // Descending
+        }
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }, [files, searchQuery, sortBy]);
 
   const handleSelectFiles = useCallback(async () => {
     try {
@@ -237,7 +275,11 @@ const FileList: React.FC<FileListProps> = ({
       <div className="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
         <div className="flex justify-between items-center mb-3">
           <span className="text-base font-medium text-gray-700 dark:text-gray-300">
-            Selected Files ({files.length})
+            Selected Files ({filteredAndSortedFiles.length}
+            {filteredAndSortedFiles.length !== files.length
+              ? ` of ${files.length}`
+              : ""}
+            )
           </span>
           <button
             onClick={onClearAll}
@@ -263,6 +305,29 @@ const FileList: React.FC<FileListProps> = ({
         <button onClick={handleSelectFiles} className="w-full btn-primary">
           Select Files
         </button>
+
+        {/* Filters Row */}
+        {hasFiles && (
+          <div className="flex gap-2 mt-3">
+            <input
+              type="text"
+              placeholder="Search files..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="name">Sort by Name</option>
+              <option value="tokenCount">Sort by Tokens</option>
+              <option value="type">Sort by Type</option>
+              <option value="size">Sort by Size</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* File List / Drop Zone */}
@@ -275,20 +340,30 @@ const FileList: React.FC<FileListProps> = ({
       >
         {hasFiles ? (
           <ul className="text-base space-y-1 p-4 h-full overflow-y-auto">
-            {files.map((file) => (
+            {filteredAndSortedFiles.map((file) => (
               <li
                 key={file.id}
                 className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               >
-                <span
-                  className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1 font-mono"
-                  title={file.path}
-                >
-                  {file.path}
-                </span>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span
+                    className="text-sm text-gray-700 dark:text-gray-300 truncate font-mono"
+                    title={file.path}
+                  >
+                    {file.path}
+                  </span>
+                  {file.tokenCount !== undefined && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 shrink-0">
+                      {file.tokenCount.toLocaleString()} tokens
+                    </span>
+                  )}
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 shrink-0">
+                    {file.type}
+                  </span>
+                </div>
                 <button
                   onClick={() => onRemoveFile(file.id)}
-                  className="ml-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  className="ml-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0"
                   aria-label="Remove file"
                 >
                   ✕
