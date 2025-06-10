@@ -99,7 +99,7 @@ app.whenReady().then(() => {
   });
 
   // Handler to generate combined content and count tokens
-  ipcMain.handle('files:generatePreview', async (_e, filePaths: string[]): Promise<FilePreviewResult> => {
+  ipcMain.handle('files:generatePreview', async (_e, filePaths: string[], dragDropFiles: Array<{ name: string, content: string }> = []): Promise<FilePreviewResult> => {
     const uniqueFiles = getUniqueExistingFiles(filePaths);
 
     let output = 'Files combined:\n';
@@ -109,6 +109,11 @@ app.whenReady().then(() => {
       output += `- ${file}\n`;
     });
 
+    // Add drag-and-drop files to the list
+    dragDropFiles.forEach((fileData) => {
+      output += `- ${fileData.name}\n`;
+    });
+
     output += '\n'; // Add a blank line after the file list
 
     // Add the actual content using template literals consistently
@@ -116,6 +121,12 @@ app.whenReady().then(() => {
       const ext = path.extname(file).slice(1);
       const content = fs.readFileSync(file, 'utf-8');
       output += `${file}\n\`\`\`${ext}\n${content.trimEnd()}\n\`\`\`\n\n`;
+    });
+
+    // Add drag-and-drop files content
+    dragDropFiles.forEach((fileData) => {
+      const ext = path.extname(fileData.name).slice(1);
+      output += `${fileData.name}\n\`\`\`${ext}\n${fileData.content.trimEnd()}\n\`\`\`\n\n`;
     });
 
     // Count tokens using tiktoken
@@ -131,7 +142,7 @@ app.whenReady().then(() => {
     return {
       content: output.trim(),
       tokenCount,
-      fileCount: uniqueFiles.size
+      fileCount: uniqueFiles.size + dragDropFiles.length
     };
   });
 

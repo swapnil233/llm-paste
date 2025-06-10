@@ -15,7 +15,7 @@ declare global {
     interface Window {
         api: {
             selectFiles: () => Promise<string[]>;
-            generatePreview: (files: string[]) => Promise<FilePreviewResult>;
+            generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => Promise<FilePreviewResult>;
             combineFiles: (content: string) => Promise<CombineResult>;
             copyToClipboard: (text: string) => Promise<boolean>;
         };
@@ -25,10 +25,19 @@ declare global {
 // File Manager Module - handles file operations and state
 class FileManager {
     private files: string[] = [];
+    private dragDropFiles: Array<{ name: string, content: string }> = [];
     private currentContent = '';
 
     getFiles(): string[] {
         return [...this.files];
+    }
+
+    getDragDropFiles(): Array<{ name: string, content: string }> {
+        return [...this.dragDropFiles];
+    }
+
+    getAllFileNames(): string[] {
+        return [...this.files, ...this.dragDropFiles.map(f => f.name)];
     }
 
     addFiles(newFiles: string[]): number {
@@ -42,14 +51,34 @@ class FileManager {
         return addedCount;
     }
 
+    addDragDropFiles(newFiles: Array<{ name: string, content: string }>): number {
+        let addedCount = 0;
+        newFiles.forEach(fileData => {
+            if (!this.dragDropFiles.some(f => f.name === fileData.name)) {
+                this.dragDropFiles.push(fileData);
+                addedCount++;
+            }
+        });
+        return addedCount;
+    }
+
     removeFile(index: number): void {
-        if (index >= 0 && index < this.files.length) {
-            this.files.splice(index, 1);
+        const totalFiles = this.getAllFileNames();
+        if (index >= 0 && index < totalFiles.length) {
+            if (index < this.files.length) {
+                // Removing a regular file
+                this.files.splice(index, 1);
+            } else {
+                // Removing a drag-and-drop file
+                const dragIndex = index - this.files.length;
+                this.dragDropFiles.splice(dragIndex, 1);
+            }
         }
     }
 
     clearFiles(): void {
         this.files = [];
+        this.dragDropFiles = [];
         this.currentContent = '';
     }
 
@@ -62,7 +91,7 @@ class FileManager {
     }
 
     getFileCount(): number {
-        return this.files.length;
+        return this.files.length + this.dragDropFiles.length;
     }
 }
 
@@ -80,6 +109,8 @@ class UIManager {
         previewContent: HTMLElement;
         previewEmpty: HTMLElement;
         resultP: HTMLElement;
+        dropZone: HTMLElement;
+        dragOverlay: HTMLElement;
     };
 
     constructor() {
@@ -95,9 +126,12 @@ class UIManager {
             previewContent: document.getElementById('previewContent')!,
             previewEmpty: document.getElementById('previewEmpty')!,
             resultP: document.getElementById('result')!,
+            dropZone: document.getElementById('dropZone')!,
+            dragOverlay: document.getElementById('dragOverlay')!,
         };
 
         this.setupEventDelegation();
+        this.setupDragAndDrop();
     }
 
     private setupEventDelegation(): void {
@@ -109,6 +143,156 @@ class UIManager {
                 app.handleRemoveFile(index);
             }
         });
+    }
+
+    private setupDragAndDrop(): void {
+        let dragCounter = 0;
+
+        // Prevent default drag behaviors on the entire document
+        document.addEventListener('dragenter', (e) => e.preventDefault());
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('dragleave', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => e.preventDefault());
+
+        // Handle drag enter - show overlay
+        this.elements.dropZone.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter++;
+            this.elements.dragOverlay.classList.remove('hidden');
+            console.log('Drag enter, counter:', dragCounter);
+        });
+
+        // Handle drag over - maintain overlay
+        this.elements.dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Ensure we show the drag overlay
+            this.elements.dragOverlay.classList.remove('hidden');
+        });
+
+        // Handle drag leave - hide overlay when leaving drop zone
+        this.elements.dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter--;
+            console.log('Drag leave, counter:', dragCounter);
+            if (dragCounter <= 0) {
+                dragCounter = 0;
+                this.elements.dragOverlay.classList.add('hidden');
+            }
+        });
+
+        // Handle drop - process files
+        this.elements.dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter = 0;
+            this.elements.dragOverlay.classList.add('hidden');
+
+            console.log('Drop event triggered!', e.dataTransfer?.files);
+
+            const files = Array.from(e.dataTransfer?.files || []);
+            if (files.length > 0) {
+                console.log('Processing', files.length, 'files');
+                this.handleDroppedFiles(files);
+            } else {
+                console.log('No files found in drop event');
+            }
+        });
+    }
+
+    private async handleDroppedFiles(files: File[]): Promise<void> {
+        try {
+            console.log('handleDroppedFiles called with', files.length, 'files');
+
+            // Filter for code files and read their content
+            const validFilesData: Array<{ name: string, content: string }> = [];
+            // Use the same comprehensive list as the main process
+            const codeExtensions = new Set([
+                // Web Development
+                'js', 'jsx', 'ts', 'tsx', 'html', 'htm', 'css', 'scss', 'sass', 'less',
+                'vue', 'svelte', 'astro', 'json', 'xml', 'yaml', 'yml', 'toml',
+                // Programming Languages
+                'py', 'pyx', 'pyi', 'pyw', 'java', 'kt', 'kts', 'scala', 'groovy',
+                'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'hxx', 'cs', 'vb', 'fs', 'fsx',
+                'go', 'rs', 'swift', 'rb', 'php', 'pl', 'pm', 'r', 'R', 'jl',
+                'dart', 'elm', 'hs', 'lhs', 'ml', 'mli', 'f', 'f90', 'f95',
+                // Shell & Config
+                'sh', 'bash', 'zsh', 'fish', 'bat', 'cmd', 'ps1', 'psm1',
+                'dockerfile', 'makefile', 'mk', 'cmake', 'gradle', 'build',
+                'env', 'ini', 'conf', 'config', 'properties', 'cfg',
+                // Documentation & Markup
+                'md', 'markdown', 'mdx', 'rst', 'adoc', 'asciidoc', 'tex', 'txt',
+                // Database & Query
+                'sql', 'nosql', 'cypher', 'sparql', 'graphql', 'gql',
+                // Other
+                'lock', 'gitignore', 'gitattributes', 'editorconfig', 'eslintrc',
+                'prettierrc', 'babelrc', 'tsconfig', 'jsconfig', 'webpack'
+            ]);
+
+            const rejectedFiles: string[] = [];
+
+            for (const file of files) {
+                console.log('Processing file:', file.name);
+
+                // Get file extension (handle files without extensions)
+                const nameParts = file.name.split('.');
+                const extension = nameParts.length > 1 ? nameParts.pop()?.toLowerCase() || '' : '';
+
+                console.log('File extension extracted:', extension, 'from', file.name);
+                console.log('Extension in codeExtensions?', codeExtensions.has(extension));
+
+                // Check if it's a valid code file or has no extension (like README, Dockerfile, etc.)
+                const isCodeFile = codeExtensions.has(extension) ||
+                    extension === '' ||
+                    file.name.toLowerCase().includes('dockerfile') ||
+                    file.name.toLowerCase().includes('makefile') ||
+                    file.name.toLowerCase().includes('readme');
+
+                console.log('isCodeFile result for', file.name, ':', isCodeFile);
+
+                if (isCodeFile) {
+                    try {
+                        // Read the file content directly (Electron 32+ compatible)
+                        const content = await file.text();
+                        validFilesData.push({
+                            name: file.name,
+                            content: content
+                        });
+                        console.log('Added valid file:', file.name);
+                    } catch (error) {
+                        console.error('Error reading file:', file.name, error);
+                        rejectedFiles.push(file.name + ' (read error)');
+                    }
+                } else {
+                    rejectedFiles.push(file.name);
+                    console.log('Rejected file:', file.name, 'Extension:', extension);
+                }
+            }
+
+            console.log('Valid files data:', validFilesData.length);
+            console.log('Rejected files:', rejectedFiles);
+
+            if (validFilesData.length > 0) {
+                // Add files to local file manager
+                const addedCount = app.fileManager.addDragDropFiles(validFilesData);
+                await app.updateUI();
+
+                let message = `✅ Added ${addedCount} file(s) via drag & drop`;
+                if (rejectedFiles.length > 0) {
+                    message += `\n⚠️ Skipped ${rejectedFiles.length} non-code file(s)`;
+                }
+                this.showMessage(message, 'success');
+            } else if (rejectedFiles.length > 0) {
+                this.showMessage(`❌ Only code files are supported. Skipped ${rejectedFiles.length} file(s).`, 'error');
+            } else {
+                this.showMessage(`❌ No valid files found. Make sure to drag code files.`, 'error');
+            }
+        } catch (error) {
+            this.showMessage(`❌ Error processing dropped files: ${error}`, 'error');
+            console.error('Drag and drop error:', error);
+        }
     }
 
     updateFileList(files: string[]): void {
@@ -150,7 +334,11 @@ class UIManager {
             // Show loading state
             this.elements.tokenCount.textContent = 'Calculating...';
 
-            const preview = await window.api.generatePreview(files);
+            // Get both regular files and drag-and-drop files
+            const regularFiles = app.fileManager.getFiles();
+            const dragDropFiles = app.fileManager.getDragDropFiles();
+
+            const preview = await window.api.generatePreview(regularFiles, dragDropFiles);
             app.fileManager.setCurrentContent(preview.content);
 
             this.elements.previewContent.style.display = 'block';
@@ -272,8 +460,8 @@ class App {
         }
     }
 
-    private async updateUI(): Promise<void> {
-        const files = this.fileManager.getFiles();
+    public async updateUI(): Promise<void> {
+        const files = this.fileManager.getAllFileNames();
         this.uiManager.updateFileList(files);
         await this.uiManager.updatePreview(files);
     }
