@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Combine Tool</title>
+  </head>
+  <body class="h-screen flex flex-col items-center justify-center bg-gray-100">
+    <div class="w-full max-w-2xl bg-white shadow rounded-xl p-6 space-y-4">
+      <h1 class="text-xl font-semibold text-center">File Combiner</h1>
+      <p class="text-sm text-gray-600 text-center">Add files from different folders, then combine them all at once</p>
+
+      <!-- Selected files list -->
+      <div class="border rounded p-3 bg-gray-50">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sm font-medium text-gray-700">Selected Files (<span id="fileCount">0</span>)</span>
+          <button id="clearBtn" class="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded border border-red-200 hover:bg-red-50">Clear All</button>
+        </div>
+        <ul id="fileList" class="text-sm space-y-1 max-h-48 overflow-y-auto"></ul>
+        <div id="emptyState" class="text-sm text-gray-500 text-center py-4">No files selected yet. Click "Add File" to get started.</div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex gap-2">
+        <button id="addFileBtn" class="flex-1 btn bg-blue-600 text-white hover:bg-blue-700">Add File</button>
+        <button id="selectBtn" class="flex-1 btn">Select Multiple</button>
+        <button id="combineBtn" class="flex-1 btn bg-indigo-600 text-white hover:bg-indigo-700">Combine</button>
+      </div>
+
+      <!-- Result info -->
+      <p id="result" class="text-xs text-gray-600"></p>
+    </div>
+  </body>
+</html>
