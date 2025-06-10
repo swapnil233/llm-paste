@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useMemo } from "react";
 import { useElectron } from "../hooks/useElectron";
 import { useToast } from "../contexts/ToastContext";
 import type { DragDropFile, AppFile, SortOption } from "../types";
+import { IGNORED_FILES } from "../../constants/ignored";
 
 interface FileListProps {
   files: AppFile[];
@@ -9,6 +10,7 @@ interface FileListProps {
   onFoldersSelected: (files: string[]) => void;
   onDragDropFilesAdded: (files: DragDropFile[]) => void;
   onRemoveFile: (fileId: string) => void;
+  onRemoveFiltered: (ids: string[]) => void;
   onClearAll: () => void;
 }
 
@@ -18,6 +20,7 @@ const FileList: React.FC<FileListProps> = ({
   onFoldersSelected,
   onDragDropFilesAdded,
   onRemoveFile,
+  onRemoveFiltered,
   onClearAll,
 }) => {
   const api = useElectron();
@@ -242,6 +245,12 @@ const FileList: React.FC<FileListProps> = ({
         ]);
 
         for (const file of files) {
+          // Skip ignored files (case-insensitive)
+          if (IGNORED_FILES.has(file.name.toLowerCase())) {
+            rejectedFiles.push(file.name);
+            continue;
+          }
+
           const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
           const isCodeFile =
             codeExtensions.has(fileExt) ||
@@ -361,6 +370,26 @@ const FileList: React.FC<FileListProps> = ({
               <option value="type">Sort by Type</option>
               <option value="size">Sort by Size</option>
             </select>
+
+            {searchQuery.trim() && filteredAndSortedFiles.length > 0 && (
+              <button
+                onClick={() => {
+                  if (
+                    confirm(
+                      `Delete the ${filteredAndSortedFiles.length} file(s) currently shown?`
+                    )
+                  ) {
+                    onRemoveFiltered(filteredAndSortedFiles.map((f) => f.id));
+                    setSearchQuery("");
+                    showToast("Filtered files deleted", "success");
+                  }
+                }}
+                className="btn-danger text-sm"
+                aria-label={`Delete all ${filteredAndSortedFiles.length} filtered files`}
+              >
+                Delete All
+              </button>
+            )}
           </div>
         )}
       </div>

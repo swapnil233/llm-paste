@@ -154,6 +154,11 @@ const App: React.FC = () => {
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
   }, []);
 
+  // Bulk remove filtered files
+  const handleRemoveFiltered = useCallback((ids: string[]) => {
+    setFiles((prev) => prev.filter((f) => !ids.includes(f.id)));
+  }, []);
+
   const handleClearAll = useCallback(() => {
     setFiles([]);
   }, []);
@@ -207,6 +212,7 @@ const App: React.FC = () => {
               onFoldersSelected={handleFoldersSelected}
               onDragDropFilesAdded={handleDragDropFilesAdded}
               onRemoveFile={handleRemoveFile}
+              onRemoveFiltered={handleRemoveFiltered}
               onClearAll={handleClearAll}
             />
           </div>
