@@ -16,6 +16,7 @@ const App: React.FC = () => {
   // Unified file state management
   const [files, setFiles] = useState<AppFile[]>([]);
   const [previewContent, setPreviewContent] = useState("");
+  const [previewFiles, setPreviewFiles] = useState<string[]>([]);
   const [tokenCount, setTokenCount] = useState(0);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [currentTokenLimit, setCurrentTokenLimit] = useState(128000);
@@ -25,6 +26,7 @@ const App: React.FC = () => {
     const generatePreview = async () => {
       if (files.length === 0) {
         setPreviewContent("");
+        setPreviewFiles([]);
         setTokenCount(0);
         return;
       }
@@ -50,12 +52,14 @@ const App: React.FC = () => {
         // Only update state if this is still the latest request
         if (pendingPreviewRef.current === previewPromise) {
           setPreviewContent(result.content);
+          setPreviewFiles(result.files);
           setTokenCount(result.tokenCount);
         }
       } catch (error) {
         console.error("Error generating preview:", error);
         if (pendingPreviewRef.current) {
           setPreviewContent("");
+          setPreviewFiles([]);
           setTokenCount(0);
         }
       } finally {
@@ -106,6 +110,20 @@ const App: React.FC = () => {
         .filter((path) => !prev.some((f) => f.path === path)) // Deduplicate
         .map((path) => ({
           id: `file-${Date.now()}-${Math.random()}`,
+          path,
+          type: "selected" as const,
+        }));
+      return [...prev, ...newFiles];
+    });
+  }, []);
+
+  // When selecting folders (same logic as files since folders are expanded to files)
+  const handleFoldersSelected = useCallback((paths: string[]) => {
+    setFiles((prev) => {
+      const newFiles = paths
+        .filter((path) => !prev.some((f) => f.path === path)) // Deduplicate
+        .map((path) => ({
+          id: `folder-${Date.now()}-${Math.random()}`,
           path,
           type: "selected" as const,
         }));
@@ -186,6 +204,7 @@ const App: React.FC = () => {
             <FileList
               files={files}
               onFilesSelected={handleFilesSelected}
+              onFoldersSelected={handleFoldersSelected}
               onDragDropFilesAdded={handleDragDropFilesAdded}
               onRemoveFile={handleRemoveFile}
               onClearAll={handleClearAll}
@@ -196,6 +215,7 @@ const App: React.FC = () => {
 
           <PreviewPane
             content={previewContent}
+            files={previewFiles}
             tokenCount={tokenCount}
             isLoading={isLoadingPreview}
             currentTokenLimit={currentTokenLimit}

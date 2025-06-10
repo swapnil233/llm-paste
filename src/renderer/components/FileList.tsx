@@ -6,6 +6,7 @@ import type { DragDropFile, AppFile, SortOption } from "../types";
 interface FileListProps {
   files: AppFile[];
   onFilesSelected: (files: string[]) => void;
+  onFoldersSelected: (files: string[]) => void;
   onDragDropFilesAdded: (files: DragDropFile[]) => void;
   onRemoveFile: (fileId: string) => void;
   onClearAll: () => void;
@@ -14,6 +15,7 @@ interface FileListProps {
 const FileList: React.FC<FileListProps> = ({
   files,
   onFilesSelected,
+  onFoldersSelected,
   onDragDropFilesAdded,
   onRemoveFile,
   onClearAll,
@@ -74,6 +76,18 @@ const FileList: React.FC<FileListProps> = ({
       showToast(`Error selecting files: ${error}`, "error");
     }
   }, [api, onFilesSelected, showToast]);
+
+  const handleSelectFolders = useCallback(async () => {
+    try {
+      const files = await api.selectFolders();
+      if (files.length > 0) {
+        onFoldersSelected(files);
+        showToast(`Added ${files.length} file(s) from folders`, "success");
+      }
+    } catch (error) {
+      showToast(`Error selecting folders: ${error}`, "error");
+    }
+  }, [api, onFoldersSelected, showToast]);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -223,6 +237,8 @@ const FileList: React.FC<FileListProps> = ({
           "tsconfig",
           "jsconfig",
           "webpack",
+          "schema",
+          "prisma",
         ]);
 
         for (const file of files) {
@@ -237,7 +253,10 @@ const FileList: React.FC<FileListProps> = ({
           if (isCodeFile) {
             try {
               const content = await file.text();
-              validFilesData.push({ name: file.name, content });
+              validFilesData.push({
+                name: (file as any).path || file.name,
+                content,
+              });
             } catch (error) {
               rejectedFiles.push(`${file.name} (read error)`);
             }
@@ -285,12 +304,14 @@ const FileList: React.FC<FileListProps> = ({
             onClick={onClearAll}
             disabled={!hasFiles}
             className="text-sm btn-danger flex items-center gap-1 disabled:opacity-50"
+            aria-label="Clear all selected files"
           >
             <svg
               className="w-4 h-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -302,9 +323,22 @@ const FileList: React.FC<FileListProps> = ({
             Reset
           </button>
         </div>
-        <button onClick={handleSelectFiles} className="w-full btn-primary">
-          Select Files
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={handleSelectFiles}
+            className="btn-primary text-sm"
+            aria-label="Open file selection dialog"
+          >
+            Add Files
+          </button>
+          <button
+            onClick={handleSelectFolders}
+            className="btn-outline text-sm"
+            aria-label="Open folder selection dialog"
+          >
+            Add Folders
+          </button>
+        </div>
 
         {/* Filters Row */}
         {hasFiles && (
@@ -320,6 +354,7 @@ const FileList: React.FC<FileListProps> = ({
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              aria-label="Sort files by"
             >
               <option value="name">Sort by Name</option>
               <option value="tokenCount">Sort by Tokens</option>
@@ -364,7 +399,7 @@ const FileList: React.FC<FileListProps> = ({
                 <button
                   onClick={() => onRemoveFile(file.id)}
                   className="ml-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0"
-                  aria-label="Remove file"
+                  aria-label={`Remove file ${file.path}`}
                 >
                   ✕
                 </button>

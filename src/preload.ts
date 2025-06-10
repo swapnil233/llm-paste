@@ -3,7 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 // Define the API interface for better type safety
 interface ElectronAPI {
     selectFiles: () => Promise<string[]>;
-    generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => Promise<{ content: string; tokenCount: number; fileCount: number }>;
+    selectFolders: () => Promise<string[]>;
+    generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => Promise<{ content: string; tokenCount: number; fileCount: number; files: string[] }>;
     getTokenCounts: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => Promise<Record<string, number>>;
     combineFiles: (content: string) => Promise<{ dest: string }>;
     copyToClipboard: (text: string) => Promise<boolean>;
@@ -14,6 +15,7 @@ interface ElectronAPI {
 // Create the API object
 const api: ElectronAPI = {
     selectFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog:openFiles'),
+    selectFolders: (): Promise<string[]> => ipcRenderer.invoke('dialog:openFolders'),
     generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => ipcRenderer.invoke('files:generatePreview', files, dragDropFiles),
     getTokenCounts: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => ipcRenderer.invoke('files:getTokenCounts', files, dragDropFiles),
     combineFiles: (content: string) => ipcRenderer.invoke('files:combine', content),

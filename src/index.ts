@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, clipboard, nativeTheme } from 'ele
 import path from 'node:path';
 import fs from 'node:fs';
 import { encoding_for_model } from 'tiktoken';
+import windowStateKeeper from 'electron-window-state';
 
 // Set the correct path for tiktoken WASM files in packaged app
 if (app.isPackaged) {
@@ -13,6 +14,7 @@ interface FilePreviewResult {
   content: string;
   tokenCount: number;
   fileCount: number;
+  files: string[];
 }
 
 interface CombineResult {
@@ -57,7 +59,7 @@ const CODE_EXTENSIONS = new Set<string>([
   // Documentation & Markup
   'md', 'markdown', 'mdx', 'rst', 'adoc', 'asciidoc', 'tex', 'txt',
   // Database & Query
-  'sql', 'nosql', 'cypher', 'sparql', 'graphql', 'gql',
+  'sql', 'nosql', 'cypher', 'sparql', 'graphql', 'gql', "schema", "prisma",
   // Other
   'lock', 'gitignore', 'gitattributes', 'editorconfig', 'eslintrc',
   'prettierrc', 'babelrc', 'tsconfig', 'jsconfig', 'webpack'
@@ -81,7 +83,8 @@ function walkDir(dir: string): string[] {
       const isCodeFile =
         CODE_EXTENSIONS.has(ext) ||
         ext === '' || // e.g. Dockerfile, Makefile
-        /^(dockerfile|makefile|readme)/i.test(entry.name);
+        /^(dockerfile|makefile|readme)/i.test(entry.name) ||
+        /^(schema\.prisma|prisma\.schema)$/i.test(entry.name); // Prisma schema files
 
       return isCodeFile ? [fullPath] : [];
     });
@@ -92,10 +95,18 @@ function walkDir(dir: string): string[] {
 }
 
 const createWindow = (): void => {
+  // Load the previous window state or set defaults
+  const mainWindowState = windowStateKeeper({
+    defaultWidth: 800,
+    defaultHeight: 600,
+  });
+
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    height: 600,
-    width: 800,
+    x: mainWindowState.x,
+    y: mainWindowState.y,
+    width: mainWindowState.width,
+    height: mainWindowState.height,
     minWidth: 600,
     minHeight: 400,
     webPreferences: {
@@ -104,6 +115,9 @@ const createWindow = (): void => {
       nodeIntegration: false,
     },
   });
+
+  // Let windowStateKeeper manage the window
+  mainWindowState.manage(mainWindow);
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
@@ -121,7 +135,7 @@ app.whenReady().then(() => {
   // IPC handlers
   ipcMain.handle('dialog:openFiles', async (): Promise<string[]> => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
-      properties: ['openFile', 'openDirectory', 'multiSelections'],
+      properties: ['openFile', 'multiSelections'],
       filters: [
         {
           name: 'Code Files',
@@ -141,7 +155,7 @@ app.whenReady().then(() => {
             // Documentation & Markup
             'md', 'markdown', 'mdx', 'rst', 'adoc', 'asciidoc', 'tex', 'txt',
             // Database & Query
-            'sql', 'nosql', 'cypher', 'sparql', 'graphql', 'gql',
+            'sql', 'nosql', 'cypher', 'sparql', 'graphql', 'gql', 'schema', 'prisma',
             // Other
             'lock', 'gitignore', 'gitattributes', 'editorconfig', 'eslintrc',
             'prettierrc', 'babelrc', 'tsconfig', 'jsconfig', 'webpack'
@@ -152,6 +166,13 @@ app.whenReady().then(() => {
           extensions: ['*']
         }
       ]
+    });
+    return canceled ? [] : filePaths;
+  });
+
+  ipcMain.handle('dialog:openFolders', async (): Promise<string[]> => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      properties: ['openDirectory', 'multiSelections']
     });
     if (canceled) return [];
 
@@ -204,10 +225,14 @@ app.whenReady().then(() => {
       console.error('Error counting tokens:', error);
     }
 
+    // Create the actual file list
+    const files = [...Array.from(uniqueFiles), ...dragDropFiles.map(f => f.name)];
+
     return {
       content: output.trim(),
       tokenCount,
-      fileCount: uniqueFiles.size + dragDropFiles.length
+      fileCount: uniqueFiles.size + dragDropFiles.length,
+      files
     };
   });
 

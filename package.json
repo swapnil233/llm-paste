@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "electron-window-state": "^5.0.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tiktoken": "^1.0.21"

@@ -2,6 +2,7 @@ export interface FilePreviewResult {
     content: string;
     tokenCount: number;
     fileCount: number;
+    files: string[]; // List of actual file paths/names
 }
 
 export interface CombineResult {
