@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, clipboard } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, clipboard, nativeTheme } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { encoding_for_model } from 'tiktoken';
@@ -44,6 +44,8 @@ const createWindow = (): void => {
     minHeight: 400,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      contextIsolation: true,
+      nodeIntegration: false,
     },
   });
 
@@ -157,6 +159,16 @@ app.whenReady().then(() => {
   ipcMain.handle('clipboard:writeText', async (_e, text: string): Promise<boolean> => {
     clipboard.writeText(text);
     return true;
+  });
+
+  // Handler to get/set theme
+  ipcMain.handle('theme:shouldUseDarkColors', () => {
+    return nativeTheme.shouldUseDarkColors;
+  });
+
+  ipcMain.handle('theme:setTheme', (_e, theme: 'system' | 'light' | 'dark') => {
+    nativeTheme.themeSource = theme;
+    return nativeTheme.shouldUseDarkColors;
   });
 });
 

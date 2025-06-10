@@ -11,7 +11,8 @@
     "outDir": "dist",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "types": ["electron"],
+    "jsx": "react-jsx",
+    "types": ["electron", "react", "react-dom"],
     "paths": {
       "*": ["node_modules/*"]
     }

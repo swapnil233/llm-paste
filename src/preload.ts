@@ -6,12 +6,22 @@ interface ElectronAPI {
     generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => Promise<{ content: string; tokenCount: number; fileCount: number }>;
     combineFiles: (content: string) => Promise<{ dest: string }>;
     copyToClipboard: (text: string) => Promise<boolean>;
+    shouldUseDarkColors: () => Promise<boolean>;
+    setTheme: (theme: 'system' | 'light' | 'dark') => Promise<boolean>;
 }
 
-// Expose a focused, secure API to the renderer process
-contextBridge.exposeInMainWorld('api', {
+// Create the API object
+const api: ElectronAPI = {
     selectFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog:openFiles'),
     generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => ipcRenderer.invoke('files:generatePreview', files, dragDropFiles),
     combineFiles: (content: string) => ipcRenderer.invoke('files:combine', content),
     copyToClipboard: (text: string) => ipcRenderer.invoke('clipboard:writeText', text),
-} as ElectronAPI);
+    shouldUseDarkColors: () => ipcRenderer.invoke('theme:shouldUseDarkColors'),
+    setTheme: (theme: 'system' | 'light' | 'dark') => ipcRenderer.invoke('theme:setTheme', theme),
+};
+
+// Expose a focused, secure API to the renderer process
+contextBridge.exposeInMainWorld('api', Object.freeze(api));
+
+// Export the type for React components to use
+export type { ElectronAPI };

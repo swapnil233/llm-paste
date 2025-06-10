@@ -2,70 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Combine Tool</title>
   </head>
-  <body class="h-screen flex flex-col bg-gray-100">
-    <!-- Header -->
-    <div class="bg-white shadow-sm border-b px-6 py-4">
-      <h1 class="text-xl font-semibold text-gray-800">File Combiner</h1>
-      <p class="text-base text-gray-600">Select files from different folders and preview the combined output</p>
-    </div>
-
-    <!-- Main Content -->
-    <div class="flex-1 flex overflow-hidden">
-      <!-- Left Panel - File Selection -->
-      <div class="w-1/2 bg-white border-r flex flex-col">
-        <div class="p-4 border-b bg-gray-50">
-          <div class="flex justify-between items-center mb-3">
-            <span class="text-base font-medium text-gray-700">Selected Files (<span id="fileCount">0</span>)</span>
-            <button id="clearBtn" class="text-sm btn-danger">Clear All</button>
-          </div>
-          <button id="selectBtn" class="w-full btn-primary">Select Files</button>
-        </div>
-        
-        <div class="flex-1 overflow-hidden relative" id="dropZone">
-          <ul id="fileList" class="text-base space-y-1 p-4 h-full overflow-y-auto"></ul>
-          <div id="emptyState" class="text-base text-gray-500 text-center py-8">
-            No files selected yet.<br>
-            Click "Select Files" or <strong>drag files here</strong> to get started.
-          </div>
-          
-          <!-- Drag overlay -->
-          <div id="dragOverlay" class="absolute inset-0 bg-blue-50 bg-opacity-90 border-2 border-dashed border-blue-300 flex items-center justify-center hidden z-10">
-            <div class="text-center">
-              <div class="text-4xl mb-2">📁</div>
-              <div class="text-lg font-medium text-blue-700">Drop files here</div>
-              <div class="text-sm text-blue-600">Release to add files to your selection</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Panel - Preview -->
-      <div class="w-1/2 bg-gray-50 flex flex-col">
-        <div class="p-4 border-b bg-white">
-          <div class="flex justify-between items-center mb-3">
-            <div class="flex items-center gap-4">
-              <span class="text-base font-medium text-gray-700">Preview</span>
-              <span id="tokenCount" class="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">0 tokens</span>
-            </div>
-            <div class="flex gap-2">
-              <button id="copyBtn" class="btn-primary text-sm">Copy to Clipboard</button>
-              <button id="saveBtn" class="btn-secondary text-sm">Save to Desktop</button>
-            </div>
-          </div>
-        </div>
-        
-        <div class="flex-1 overflow-hidden">
-          <div id="previewContent" class="preview-content h-full overflow-y-auto p-4 text-base bg-white m-4 rounded border"></div>
-          <div id="previewEmpty" class="text-base text-gray-500 text-center py-8">Combined content will appear here when you select files</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Status Bar -->
-    <div class="bg-white border-t px-6 py-2">
-      <p id="result" class="text-sm text-gray-600"></p>
-    </div>
+  <body class="dark:bg-gray-900">
+    <div id="root"></div>
   </body>
 </html>
