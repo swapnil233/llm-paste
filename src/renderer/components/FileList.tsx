@@ -3,6 +3,16 @@ import { useElectron } from "../hooks/useElectron";
 import { useToast } from "../contexts/ToastContext";
 import type { DragDropFile, AppFile, SortOption } from "../types";
 import { IGNORED_FILES } from "../../constants/ignored";
+import getFileIcon from "../../utils/getFileIcon";
+import Button from "./Button";
+import {
+  IconFiles,
+  IconFolders,
+  IconX,
+  IconTrash,
+  IconRefresh,
+} from "@tabler/icons-react";
+import { codeExtensions } from "../../constants/codeExtensions";
 
 interface FileListProps {
   files: AppFile[];
@@ -138,112 +148,6 @@ const FileList: React.FC<FileListProps> = ({
         const validFilesData: DragDropFile[] = [];
         const rejectedFiles: string[] = [];
 
-        // Define supported extensions
-        const codeExtensions = new Set([
-          "js",
-          "jsx",
-          "ts",
-          "tsx",
-          "html",
-          "htm",
-          "css",
-          "scss",
-          "sass",
-          "less",
-          "vue",
-          "svelte",
-          "astro",
-          "json",
-          "xml",
-          "yaml",
-          "yml",
-          "toml",
-          "py",
-          "pyx",
-          "pyi",
-          "pyw",
-          "java",
-          "kt",
-          "kts",
-          "scala",
-          "groovy",
-          "c",
-          "cpp",
-          "cc",
-          "cxx",
-          "h",
-          "hpp",
-          "hxx",
-          "cs",
-          "vb",
-          "fs",
-          "fsx",
-          "go",
-          "rs",
-          "swift",
-          "rb",
-          "php",
-          "pl",
-          "pm",
-          "r",
-          "jl",
-          "dart",
-          "elm",
-          "hs",
-          "lhs",
-          "ml",
-          "mli",
-          "f",
-          "f90",
-          "f95",
-          "sh",
-          "bash",
-          "zsh",
-          "fish",
-          "bat",
-          "cmd",
-          "ps1",
-          "psm1",
-          "dockerfile",
-          "makefile",
-          "mk",
-          "cmake",
-          "gradle",
-          "build",
-          "env",
-          "ini",
-          "conf",
-          "config",
-          "properties",
-          "cfg",
-          "md",
-          "markdown",
-          "mdx",
-          "rst",
-          "adoc",
-          "asciidoc",
-          "tex",
-          "txt",
-          "sql",
-          "nosql",
-          "cypher",
-          "sparql",
-          "graphql",
-          "gql",
-          "lock",
-          "gitignore",
-          "gitattributes",
-          "editorconfig",
-          "eslintrc",
-          "prettierrc",
-          "babelrc",
-          "tsconfig",
-          "jsconfig",
-          "webpack",
-          "schema",
-          "prisma",
-        ]);
-
         for (const file of files) {
           // Skip ignored files (case-insensitive)
           if (IGNORED_FILES.has(file.name.toLowerCase())) {
@@ -300,7 +204,7 @@ const FileList: React.FC<FileListProps> = ({
   return (
     <div className="resize-x overflow-auto bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
+      <div className="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex justify-between items-center mb-3">
           <span className="text-base font-medium text-gray-700 dark:text-gray-300">
             Selected Files ({filteredAndSortedFiles.length}
@@ -309,70 +213,76 @@ const FileList: React.FC<FileListProps> = ({
               : ""}
             )
           </span>
-          <button
+          <Button
+            variant="danger"
+            size="sm"
+            icon={IconRefresh}
             onClick={onClearAll}
             disabled={!hasFiles}
-            className="text-sm btn-danger flex items-center gap-1 disabled:opacity-50"
             aria-label="Clear all selected files"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              ></path>
-            </svg>
             Reset
-          </button>
+          </Button>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={handleSelectFiles}
-            className="btn-primary text-sm"
-            aria-label="Open file selection dialog"
-          >
-            Add Files
-          </button>
-          <button
+          <Button
+            variant="primary"
+            size="sm"
+            icon={IconFolders}
             onClick={handleSelectFolders}
-            className="btn-outline text-sm"
+            fullWidth
             aria-label="Open folder selection dialog"
           >
             Add Folders
-          </button>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={IconFiles}
+            onClick={handleSelectFiles}
+            fullWidth
+            aria-label="Open file selection dialog"
+          >
+            Add Files
+          </Button>
         </div>
 
         {/* Filters Row */}
         {hasFiles && (
           <div className="flex gap-2 mt-3">
-            <input
-              type="text"
-              placeholder="Search files..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              aria-label="Sort files by"
-            >
-              <option value="name">Sort by Name</option>
-              <option value="tokenCount">Sort by Tokens</option>
-              <option value="type">Sort by Type</option>
-              <option value="size">Sort by Size</option>
-            </select>
+            <div className="flex flex-col w-[70%] gap-1">
+              <label className="text-gray-900 dark:text-gray-100">
+                Search by file name
+              </label>
+              <input
+                type="text"
+                placeholder="Search files..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex flex-col gap-1 w-[30%]">
+              <label className="text-gray-900 dark:text-gray-100">
+                Sort files
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                aria-label="Sort files by"
+              >
+                <option value="name">Sort by Name</option>
+                <option value="tokenCount">Sort by Tokens</option>
+                <option value="type">Sort by Type</option>
+                <option value="size">Sort by Size</option>
+              </select>
+            </div>
 
             {searchQuery.trim() && filteredAndSortedFiles.length > 0 && (
-              <button
+              <Button
+                variant="danger"
+                size="sm"
                 onClick={() => {
                   if (
                     confirm(
@@ -384,11 +294,10 @@ const FileList: React.FC<FileListProps> = ({
                     showToast("Filtered files deleted", "success");
                   }
                 }}
-                className="btn-danger text-sm"
                 aria-label={`Delete all ${filteredAndSortedFiles.length} filtered files`}
               >
                 Delete All
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -403,38 +312,46 @@ const FileList: React.FC<FileListProps> = ({
         onDrop={handleDrop}
       >
         {hasFiles ? (
-          <ul className="text-base space-y-1 p-4 h-full overflow-y-auto">
+          <div className="space-y-3 p-4 h-full overflow-y-auto">
             {filteredAndSortedFiles.map((file) => (
-              <li
+              <div
                 key={file.id}
-                className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                className="flex items-center p-6 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm"
               >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
+                {/* File Icon */}
+                <div className="flex items-center justify-center mr-3 shrink-0">
+                  {getFileIcon(file.path)}
+                </div>
+
+                {/* File Path */}
+                <div className="flex-1 min-w-0 mr-3">
                   <span
-                    className="text-sm text-gray-700 dark:text-gray-300 truncate font-mono"
+                    className="text-sm text-gray-700 dark:text-gray-300 truncate font-mono block"
                     title={file.path}
                   >
                     {file.path}
                   </span>
+                </div>
+
+                {/* Token Count and Remove Button */}
+                <div className="flex items-center gap-3 shrink-0">
                   {file.tokenCount !== undefined && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 shrink-0">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
                       {file.tokenCount.toLocaleString()} tokens
                     </span>
                   )}
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 shrink-0">
-                    {file.type}
-                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={IconX}
+                    onClick={() => onRemoveFile(file.id)}
+                    className="!w-6 !h-6 !p-0 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    aria-label={`Remove file ${file.path}`}
+                  />
                 </div>
-                <button
-                  onClick={() => onRemoveFile(file.id)}
-                  className="ml-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0"
-                  aria-label={`Remove file ${file.path}`}
-                >
-                  ✕
-                </button>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : (
           <div className="text-base text-gray-500 dark:text-gray-400 text-center py-8">
             Drag files here or click "Select Files"

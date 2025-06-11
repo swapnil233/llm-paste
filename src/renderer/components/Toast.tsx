@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from "react";
+import {
+  IconCheck,
+  IconX,
+  IconAlertCircle,
+  IconInfoCircle,
+} from "@tabler/icons-react";
 import { useToast } from "../contexts/ToastContext";
+import Button from "./Button";
 
 const Toast: React.FC = () => {
   const { toasts, removeToast } = useToast();
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="fixed top-4 right-4 z-50 space-y-3">
       {toasts.map((toast) => (
         <ToastItem
           key={toast.id}
@@ -44,13 +51,30 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
   const getIcon = () => {
     switch (toast.type) {
       case "success":
-        return "✅";
+        return (
+          <IconCheck size={20} className="text-green-600 dark:text-green-400" />
+        );
       case "error":
-        return "❌";
+        return (
+          <IconAlertCircle
+            size={20}
+            className="text-red-600 dark:text-red-400"
+          />
+        );
       case "info":
-        return "ℹ️";
+        return (
+          <IconInfoCircle
+            size={20}
+            className="text-blue-600 dark:text-blue-400"
+          />
+        );
       default:
-        return "ℹ️";
+        return (
+          <IconInfoCircle
+            size={20}
+            className="text-blue-600 dark:text-blue-400"
+          />
+        );
     }
   };
 
@@ -70,29 +94,33 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
   return (
     <div
       className={`
-                ${getTypeClasses()}
-                bg-white dark:bg-gray-800 border rounded-lg shadow-lg p-3 max-w-sm
-                transform transition-all duration-300 ease-in-out
-                ${
-                  isVisible && !isLeaving
-                    ? "translate-x-0 opacity-100"
-                    : "translate-x-full opacity-0"
-                }
-            `}
+        ${getTypeClasses()}
+        bg-white dark:bg-gray-800 border rounded-lg shadow-lg backdrop-blur-sm
+        transform transition-all duration-300 ease-in-out
+        ${
+          isVisible && !isLeaving
+            ? "translate-x-0 opacity-100 scale-100"
+            : "translate-x-full opacity-0 scale-95"
+        }
+        min-w-80 max-w-md
+      `}
     >
-      <div className="flex items-center gap-2">
-        <div className="flex-shrink-0">{getIcon()}</div>
-        <div
-          className="text-sm text-gray-700 dark:text-gray-300"
-          dangerouslySetInnerHTML={{ __html: toast.message }}
-        />
-        <button
+      <div className="flex items-start gap-3 p-4">
+        <div className="flex-shrink-0 mt-0.5">{getIcon()}</div>
+        <div className="flex-1 min-w-0">
+          <div
+            className="text-base font-medium text-gray-900 dark:text-gray-100 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: toast.message }}
+          />
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={IconX}
           onClick={handleClose}
-          className="ml-auto text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+          className="flex-shrink-0 ml-2 !p-1 rounded-full"
           aria-label="Close notification"
-        >
-          ✕
-        </button>
+        />
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import type { ThemeMode } from '../types';
 export const useTheme = () => {
     const api = useElectron();
     const [isDark, setIsDark] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     useEffect(() => {
         // Initialize theme from system
@@ -12,9 +13,19 @@ export const useTheme = () => {
             try {
                 const systemDark = await api.shouldUseDarkColors();
                 setIsDark(systemDark);
-                document.documentElement.classList.toggle('dark', systemDark);
+                // Apply theme to document element immediately
+                if (systemDark) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+                setIsInitialized(true);
             } catch (error) {
                 console.error('Failed to initialize theme:', error);
+                // Fallback to light mode
+                setIsDark(false);
+                document.documentElement.classList.remove('dark');
+                setIsInitialized(true);
             }
         };
 
@@ -25,7 +36,12 @@ export const useTheme = () => {
         try {
             const newIsDark = await api.setTheme(theme);
             setIsDark(newIsDark);
-            document.documentElement.classList.toggle('dark', newIsDark);
+            // Apply theme to document element immediately
+            if (newIsDark) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
         } catch (error) {
             console.error('Failed to set theme:', error);
         }
@@ -38,6 +54,7 @@ export const useTheme = () => {
 
     return {
         isDark,
+        isInitialized,
         setTheme,
         toggleTheme,
     };

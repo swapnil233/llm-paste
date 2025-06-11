@@ -6,11 +6,13 @@ import FileList from "./FileList";
 import PreviewPane from "./PreviewPane";
 import ResizeHandle from "./ResizeHandle";
 import Toast from "./Toast";
+import Button from "./Button";
+import { IconMoon } from "@tabler/icons-react";
 import type { DragDropFile, FilePreviewResult, AppFile } from "../types";
 
 const App: React.FC = () => {
   const api = useElectron();
-  const { toggleTheme } = useTheme();
+  const { toggleTheme, isInitialized } = useTheme();
   const pendingPreviewRef = useRef<Promise<FilePreviewResult> | null>(null);
 
   // Unified file state management
@@ -165,72 +167,66 @@ const App: React.FC = () => {
 
   return (
     <ToastProvider>
-      <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900 transition-colors">
-        {/* Header */}
-        <div className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                File Combiner
-              </h1>
-              <p className="text-base text-gray-600 dark:text-gray-400">
-                Select files from different folders and preview the combined
-                output
-              </p>
-            </div>
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              aria-label="Toggle theme"
-            >
-              <svg
-                className="w-5 h-5 text-gray-600 dark:text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                ></path>
-              </svg>
-            </button>
-          </div>
+      {!isInitialized ? (
+        // Show loading screen while theme initializes
+        <div className="h-screen flex items-center justify-center bg-gray-100">
+          <div className="text-gray-600">Loading...</div>
         </div>
+      ) : (
+        <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900 transition-colors">
+          {/* Header */}
+          <div className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                  LLM Paste
+                </h1>
+                <p className="text-base text-gray-600 dark:text-gray-400">
+                  Select files from different folders and preview the combined
+                  output
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                icon={IconMoon}
+                onClick={toggleTheme}
+                className="!p-2"
+                aria-label="Toggle theme"
+              />
+            </div>
+          </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
-          <div
-            data-resize-panel="left"
-            style={{ width: "50%", minWidth: "300px", maxWidth: "70%" }}
-          >
-            <FileList
-              files={files}
-              onFilesSelected={handleFilesSelected}
-              onFoldersSelected={handleFoldersSelected}
-              onDragDropFilesAdded={handleDragDropFilesAdded}
-              onRemoveFile={handleRemoveFile}
-              onRemoveFiltered={handleRemoveFiltered}
-              onClearAll={handleClearAll}
+          {/* Main Content */}
+          <div className="flex-1 flex overflow-hidden">
+            <div
+              data-resize-panel="left"
+              style={{ width: "50%", minWidth: "300px", maxWidth: "70%" }}
+            >
+              <FileList
+                files={files}
+                onFilesSelected={handleFilesSelected}
+                onFoldersSelected={handleFoldersSelected}
+                onDragDropFilesAdded={handleDragDropFilesAdded}
+                onRemoveFile={handleRemoveFile}
+                onRemoveFiltered={handleRemoveFiltered}
+                onClearAll={handleClearAll}
+              />
+            </div>
+
+            <ResizeHandle />
+
+            <PreviewPane
+              content={previewContent}
+              tokenCount={tokenCount}
+              isLoading={isLoadingPreview}
+              currentTokenLimit={currentTokenLimit}
+              onTokenLimitChange={setCurrentTokenLimit}
             />
           </div>
 
-          <ResizeHandle />
-
-          <PreviewPane
-            content={previewContent}
-            files={previewFiles}
-            tokenCount={tokenCount}
-            isLoading={isLoadingPreview}
-            currentTokenLimit={currentTokenLimit}
-            onTokenLimitChange={setCurrentTokenLimit}
-          />
+          <Toast />
         </div>
-
-        <Toast />
-      </div>
+      )}
     </ToastProvider>
   );
 };

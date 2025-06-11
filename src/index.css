@@ -5,6 +5,22 @@
 /* Import highlight.js theme for syntax highlighting */
 @import "highlight.js/styles/github-dark.css";
 
+/* Ensure minimum font size of 16px for all text */
+@layer base {
+  html {
+    font-size: 16px;
+  }
+
+  /* Override Tailwind's small text classes to meet minimum 16px requirement */
+  .text-sm {
+    font-size: 16px !important;
+  }
+
+  .text-xs {
+    font-size: 16px !important;
+  }
+}
+
 /* Custom component classes using @apply for consistency */
 @layer components {
   .btn-primary {

@@ -113,6 +113,7 @@ const createWindow = (): void => {
     height: mainWindowState.height,
     minWidth: 600,
     minHeight: 400,
+    title: 'LLM Paste',
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       contextIsolation: true,
