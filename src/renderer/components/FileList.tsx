@@ -9,7 +9,6 @@ import {
   IconFiles,
   IconFolders,
   IconX,
-  IconTrash,
   IconRefresh,
 } from "@tabler/icons-react";
 import { codeExtensions } from "../../constants/codeExtensions";
@@ -167,7 +166,7 @@ const FileList: React.FC<FileListProps> = ({
             try {
               const content = await file.text();
               validFilesData.push({
-                name: (file as any).path || file.name,
+                name: (file as File & { path?: string }).path || file.name,
                 content,
               });
             } catch (error) {

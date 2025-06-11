@@ -18,7 +18,6 @@ const App: React.FC = () => {
   // Unified file state management
   const [files, setFiles] = useState<AppFile[]>([]);
   const [previewContent, setPreviewContent] = useState("");
-  const [previewFiles, setPreviewFiles] = useState<string[]>([]);
   const [tokenCount, setTokenCount] = useState(0);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [currentTokenLimit, setCurrentTokenLimit] = useState(128000);
@@ -28,7 +27,6 @@ const App: React.FC = () => {
     const generatePreview = async () => {
       if (files.length === 0) {
         setPreviewContent("");
-        setPreviewFiles([]);
         setTokenCount(0);
         return;
       }
@@ -41,7 +39,7 @@ const App: React.FC = () => {
           .map((f) => f.path);
         const dragDropFiles = files
           .filter((f) => f.type === "dropped" && f.content !== undefined)
-          .map((f) => ({ name: f.path, content: f.content as string }));
+          .map((f) => ({ name: f.path, content: f.content }));
 
         const previewPromise = api.generatePreview(
           selectedFiles,
@@ -54,14 +52,12 @@ const App: React.FC = () => {
         // Only update state if this is still the latest request
         if (pendingPreviewRef.current === previewPromise) {
           setPreviewContent(result.content);
-          setPreviewFiles(result.files);
           setTokenCount(result.tokenCount);
         }
       } catch (error) {
         console.error("Error generating preview:", error);
         if (pendingPreviewRef.current) {
           setPreviewContent("");
-          setPreviewFiles([]);
           setTokenCount(0);
         }
       } finally {
@@ -151,7 +147,6 @@ const App: React.FC = () => {
     []
   );
 
-  // Removing a file is now much simpler and more robust
   const handleRemoveFile = useCallback((fileId: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
   }, []);

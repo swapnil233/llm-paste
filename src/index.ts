@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { encoding_for_model } from 'tiktoken';
 import windowStateKeeper from 'electron-window-state';
 import { IGNORED_FILES } from './constants/ignored';
+import { CODE_EXTENSIONS, IGNORED_DIRS } from './constants/codeExtensions';
 
 // Set the correct path for tiktoken WASM files in packaged app
 if (app.isPackaged) {
@@ -44,30 +45,7 @@ function getUniqueExistingFiles(files: string[]): Set<string> {
 }
 
 // Recursively gather code files in a folder
-const CODE_EXTENSIONS = new Set<string>([
-  // Web Development
-  'js', 'jsx', 'ts', 'tsx', 'html', 'htm', 'css', 'scss', 'sass', 'less',
-  'vue', 'svelte', 'astro', 'json', 'xml', 'yaml', 'yml', 'toml',
-  // Programming Languages
-  'py', 'pyx', 'pyi', 'pyw', 'java', 'kt', 'kts', 'scala', 'groovy',
-  'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'hxx', 'cs', 'vb', 'fs', 'fsx',
-  'go', 'rs', 'swift', 'rb', 'php', 'pl', 'pm', 'r', 'R', 'jl',
-  'dart', 'elm', 'hs', 'lhs', 'ml', 'mli', 'f', 'f90', 'f95',
-  // Shell & Config
-  'sh', 'bash', 'zsh', 'fish', 'bat', 'cmd', 'ps1', 'psm1',
-  'dockerfile', 'makefile', 'mk', 'cmake', 'gradle', 'build',
-  'env', 'ini', 'conf', 'config', 'properties', 'cfg',
-  // Documentation & Markup
-  'md', 'markdown', 'mdx', 'rst', 'adoc', 'asciidoc', 'tex', 'txt',
-  // Database & Query
-  'sql', 'nosql', 'cypher', 'sparql', 'graphql', 'gql', "schema", "prisma",
-  // Other
-  'lock', 'gitignore', 'gitattributes', 'editorconfig', 'eslintrc',
-  'prettierrc', 'babelrc', 'tsconfig', 'jsconfig', 'webpack'
-]);
-
-const IGNORED_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', 'out', '.cache', 'coverage', '.nyc_output', 'tmp', 'temp']);
-
+// Returns a flat 1d arr containing the full paths of every file in the selected directory.
 function walkDir(dir: string): string[] {
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -83,10 +61,10 @@ function walkDir(dir: string): string[] {
       // Check if file should be ignored (case-insensitive)
       if (IGNORED_FILES.has(entry.name.toLowerCase())) return [];
 
-      const ext = path.extname(entry.name).slice(1).toLowerCase();
+      const extension = path.extname(entry.name).slice(1).toLowerCase();
       const isCodeFile =
-        CODE_EXTENSIONS.has(ext) ||
-        ext === '' || // e.g. Dockerfile, Makefile
+        CODE_EXTENSIONS.has(extension) ||
+        extension === '' || // e.g. Dockerfile, Makefile
         /^(dockerfile|makefile|readme)/i.test(entry.name) ||
         /^(schema\.prisma|prisma\.schema)$/i.test(entry.name); // Prisma schema files
 
@@ -97,6 +75,7 @@ function walkDir(dir: string): string[] {
     return [];
   }
 }
+
 
 const createWindow = (): void => {
   // Load the previous window state or set defaults
@@ -126,9 +105,6 @@ const createWindow = (): void => {
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools();
 };
 
 // This method will be called when Electron has finished
@@ -137,7 +113,7 @@ const createWindow = (): void => {
 app.whenReady().then(() => {
   createWindow();
 
-  // IPC handlers
+  // IPC handler for 
   ipcMain.handle('dialog:openFiles', async (): Promise<string[]> => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
@@ -174,6 +150,7 @@ app.whenReady().then(() => {
     });
     return canceled
       ? []
+      // path.basename = 
       : filePaths.filter(p => !IGNORED_FILES.has(path.basename(p).toLowerCase()));
   });
 
@@ -320,6 +297,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
