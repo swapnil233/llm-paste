@@ -1,8 +1,8 @@
 {
-  "name": "combine-tool",
-  "productName": "combine-tool",
+  "name": "llm-paste",
+  "productName": "LLM Paste",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "A desktop app for combining multiple code files into a single text file optimized for Large Language Models",
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",
@@ -49,6 +49,7 @@
     "typescript": "~4.5.4"
   },
   "dependencies": {
+    "@tabler/icons-react": "^3.34.0",
     "electron-squirrel-startup": "^1.0.1",
     "electron-window-state": "^5.0.3",
     "highlight.js": "^11.11.1",
