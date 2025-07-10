@@ -2,6 +2,9 @@
 
 A desktop application built with Electron + TypeScript + Tailwind CSS that combines multiple code files into a single text file for easy copying to LLMs.
 
+<img width="1845" height="1110" alt="image" src="https://github.com/user-attachments/assets/2573dfee-daae-42ee-99b3-3cfec665acfe" />
+
+
 ## Features
 
 - **Two-Panel Interface**: Left panel for file management, right panel for real-time preview
