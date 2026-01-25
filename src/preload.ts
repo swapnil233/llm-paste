@@ -4,7 +4,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 interface ElectronAPI {
     selectFiles: () => Promise<string[]>;
     selectFolders: () => Promise<string[]>;
-    generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => Promise<{ content: string; tokenCount: number; fileCount: number; files: string[] }>;
+    generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => Promise<{ content: string; tokenCount: number; fileCount: number; files: string[]; fileTokenCounts: Record<string, number> }>;
     getTokenCounts: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => Promise<Record<string, number>>;
     combineFiles: (content: string) => Promise<{ dest: string }>;
     copyToClipboard: (text: string) => Promise<boolean>;

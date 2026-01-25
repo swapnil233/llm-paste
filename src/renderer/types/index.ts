@@ -3,6 +3,7 @@ export interface FilePreviewResult {
     tokenCount: number;
     fileCount: number;
     files: string[]; // List of actual file paths/names
+    fileTokenCounts: Record<string, number>; // Per-file token counts
 }
 
 export interface CombineResult {
