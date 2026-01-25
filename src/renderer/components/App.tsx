@@ -22,7 +22,7 @@ const App: React.FC = () => {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [currentTokenLimit, setCurrentTokenLimit] = useState(128000);
 
-  // Generate preview whenever files change
+  // Generate preview whenever files change (includes per-file token counts)
   useEffect(() => {
     const generatePreview = async () => {
       if (files.length === 0) {
@@ -53,6 +53,14 @@ const App: React.FC = () => {
         if (pendingPreviewRef.current === previewPromise) {
           setPreviewContent(result.content);
           setTokenCount(result.tokenCount);
+
+          // Update files with per-file token counts from the same response
+          setFiles((prev) =>
+            prev.map((file) => ({
+              ...file,
+              tokenCount: result.fileTokenCounts[file.path] || 0,
+            }))
+          );
         }
       } catch (error) {
         console.error("Error generating preview:", error);
@@ -66,40 +74,8 @@ const App: React.FC = () => {
     };
 
     generatePreview();
-  }, [files, api]);
-
-  // Fetch individual file token counts when files change
-  useEffect(() => {
-    const fetchTokenCounts = async () => {
-      if (files.length === 0) return;
-
-      try {
-        const selectedFiles = files
-          .filter((f) => f.type === "selected")
-          .map((f) => f.path);
-        const dragDropFiles = files
-          .filter((f) => f.type === "dropped" && f.content !== undefined)
-          .map((f) => ({ name: f.path, content: f.content as string }));
-
-        const tokenCounts = await api.getTokenCounts(
-          selectedFiles,
-          dragDropFiles
-        );
-
-        // Update files with token counts
-        setFiles((prev) =>
-          prev.map((file) => ({
-            ...file,
-            tokenCount: tokenCounts[file.path] || 0,
-          }))
-        );
-      } catch (error) {
-        console.error("Error fetching token counts:", error);
-      }
-    };
-
-    fetchTokenCounts();
-  }, [files.length, api]); // Only run when number of files changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files.length, api]); // Only trigger on file count changes, not tokenCount updates
 
   // When selecting files
   const handleFilesSelected = useCallback((paths: string[]) => {

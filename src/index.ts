@@ -17,6 +17,7 @@ interface FilePreviewResult {
   tokenCount: number;
   fileCount: number;
   files: string[];
+  fileTokenCounts: Record<string, number>; // Per-file token counts
 }
 
 interface CombineResult {
@@ -168,9 +169,10 @@ app.whenReady().then(() => {
     return Array.from(getUniqueExistingFiles(allFiles));
   });
 
-  // Handler to generate combined content and count tokens
+  // Handler to generate combined content and count tokens (includes per-file token counts)
   ipcMain.handle('files:generatePreview', async (_e, filePaths: string[], dragDropFiles: Array<{ name: string, content: string }> = []): Promise<FilePreviewResult> => {
     const uniqueFiles = getUniqueExistingFiles(filePaths);
+    const fileTokenCounts: Record<string, number> = {};
 
     let output = 'Files combined:\n';
 
@@ -186,24 +188,44 @@ app.whenReady().then(() => {
 
     output += '\n'; // Add a blank line after the file list
 
+    // Store formatted content for each file to count tokens later
+    const fileContents: Array<{ key: string; formattedContent: string }> = [];
+
     // Add the actual content using template literals consistently
     uniqueFiles.forEach((file) => {
       const ext = path.extname(file).slice(1);
-      const content = fs.readFileSync(file, 'utf-8');
-      output += `${file}\n\`\`\`${ext}\n${content.trimEnd()}\n\`\`\`\n\n`;
+      try {
+        const content = fs.readFileSync(file, 'utf-8');
+        const formattedContent = `${file}\n\`\`\`${ext}\n${content.trimEnd()}\n\`\`\`\n\n`;
+        output += formattedContent;
+        fileContents.push({ key: file, formattedContent });
+      } catch (error) {
+        console.error(`Error reading file ${file}:`, error);
+        fileTokenCounts[file] = 0;
+      }
     });
 
     // Add drag-and-drop files content
     dragDropFiles.forEach((fileData) => {
       const ext = path.extname(fileData.name).slice(1);
-      output += `${fileData.name}\n\`\`\`${ext}\n${fileData.content.trimEnd()}\n\`\`\`\n\n`;
+      const formattedContent = `${fileData.name}\n\`\`\`${ext}\n${fileData.content.trimEnd()}\n\`\`\`\n\n`;
+      output += formattedContent;
+      fileContents.push({ key: fileData.name, formattedContent });
     });
 
-    // Count tokens using tiktoken
+    // Count tokens using tiktoken - both total and per-file in a single pass
     let tokenCount = 0;
     try {
       const encoding = encoding_for_model('gpt-4');
+
+      // Count total tokens
       tokenCount = encoding.encode(output.trim()).length;
+
+      // Count per-file tokens using the same encoding instance
+      for (const { key, formattedContent } of fileContents) {
+        fileTokenCounts[key] = encoding.encode(formattedContent).length;
+      }
+
       encoding.free();
     } catch (error) {
       console.error('Error counting tokens:', error);
@@ -216,7 +238,8 @@ app.whenReady().then(() => {
       content: output.trim(),
       tokenCount,
       fileCount: uniqueFiles.size + dragDropFiles.length,
-      files
+      files,
+      fileTokenCounts
     };
   });
 
