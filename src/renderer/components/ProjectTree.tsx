@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import type { TreeNode } from "../types";
 import getFileIcon from "../../utils/getFileIcon";
 import Button from "./Button";
@@ -19,12 +19,26 @@ interface ProjectTreeProps {
   onCheckedChange: (paths: Set<string>) => void;
 }
 
-// Collect all file paths from a tree node
-function collectFilePaths(node: TreeNode): string[] {
+// Get file paths for a node, using precomputed filePaths when available
+function getFilePaths(node: TreeNode): string[] {
   if (node.type === "file") return [node.path];
+  if (node.filePaths) return node.filePaths;
   if (!node.children) return [];
-  return node.children.flatMap(collectFilePaths);
+  return node.children.flatMap(getFilePaths);
 }
+
+// Reusable checkbox that properly handles the indeterminate DOM state
+const IndeterminateCheckbox: React.FC<
+  { indeterminate: boolean } & React.InputHTMLAttributes<HTMLInputElement>
+> = ({ indeterminate, ...props }) => {
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate;
+  }, [indeterminate]);
+
+  return <input ref={ref} type="checkbox" {...props} />;
+};
 
 interface TreeNodeItemProps {
   node: TreeNode;
@@ -48,27 +62,25 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
   const isDir = node.type === "directory";
   const isExpanded = expandedPaths.has(node.path);
 
-  // Determine check state for this node
+  const filePaths = useMemo(() => getFilePaths(node), [node]);
+
   const checkState = useMemo(() => {
     if (node.type === "file") {
       return checkedPaths.has(node.path) ? "checked" : "unchecked";
     }
-    const allFiles = collectFilePaths(node);
-    if (allFiles.length === 0) return "unchecked";
-    const checkedCount = allFiles.filter((p) => checkedPaths.has(p)).length;
+    if (filePaths.length === 0) return "unchecked";
+    const checkedCount = filePaths.filter((p) => checkedPaths.has(p)).length;
     if (checkedCount === 0) return "unchecked";
-    if (checkedCount === allFiles.length) return "checked";
+    if (checkedCount === filePaths.length) return "checked";
     return "indeterminate";
-  }, [node, checkedPaths]);
+  }, [node, filePaths, checkedPaths]);
 
-  // Sum token counts for directories
   const tokenCount = useMemo(() => {
     if (node.type === "file") return tokenCounts[node.path] || 0;
-    const allFiles = collectFilePaths(node);
-    return allFiles
+    return filePaths
       .filter((p) => checkedPaths.has(p))
       .reduce((sum, p) => sum + (tokenCounts[p] || 0), 0);
-  }, [node, tokenCounts, checkedPaths]);
+  }, [node, filePaths, tokenCounts, checkedPaths]);
 
   return (
     <>
@@ -91,12 +103,9 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
         </span>
 
         {/* Checkbox */}
-        <input
-          type="checkbox"
+        <IndeterminateCheckbox
           checked={checkState === "checked"}
-          ref={(el) => {
-            if (el) el.indeterminate = checkState === "indeterminate";
-          }}
+          indeterminate={checkState === "indeterminate"}
           onChange={(e) => {
             e.stopPropagation();
             onToggleCheck(node);
@@ -166,7 +175,7 @@ const ProjectTree: React.FC<ProjectTreeProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
 
   // Auto-expand root when tree changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (tree) {
       setExpandedPaths(new Set([tree.path]));
     }
@@ -186,7 +195,7 @@ const ProjectTree: React.FC<ProjectTreeProps> = ({
 
   const handleToggleCheck = useCallback(
     (node: TreeNode) => {
-      const filePaths = collectFilePaths(node);
+      const filePaths = getFilePaths(node);
       const allChecked = filePaths.every((p) => checkedPaths.has(p));
 
       const next = new Set(checkedPaths);
@@ -209,7 +218,7 @@ const ProjectTree: React.FC<ProjectTreeProps> = ({
     if (!tree || !searchQuery.trim()) return tree;
     const query = searchQuery.toLowerCase();
 
-    function filterNode(node: TreeNode): TreeNode | null {
+    const filterNode = (node: TreeNode): TreeNode | null => {
       if (node.type === "file") {
         return node.name.toLowerCase().includes(query) ? node : null;
       }
@@ -219,13 +228,13 @@ const ProjectTree: React.FC<ProjectTreeProps> = ({
         .filter(Boolean) as TreeNode[];
       if (filteredChildren.length === 0) return null;
       return { ...node, children: filteredChildren };
-    }
+    };
 
     return filterNode(tree);
   }, [tree, searchQuery]);
 
   // Auto-expand all when searching
-  React.useEffect(() => {
+  useEffect(() => {
     if (searchQuery.trim() && filteredTree) {
       const allDirs = new Set<string>();
       const gatherDirs = (node: TreeNode) => {
