@@ -108,10 +108,9 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
       <div className="flex items-start gap-3 p-4">
         <div className="flex-shrink-0 mt-0.5">{getIcon()}</div>
         <div className="flex-1 min-w-0">
-          <div
-            className="text-base font-medium text-gray-900 dark:text-gray-100 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: toast.message }}
-          />
+          <div className="text-base font-medium text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-line">
+            {toast.message}
+          </div>
         </div>
         <Button
           variant="ghost"
