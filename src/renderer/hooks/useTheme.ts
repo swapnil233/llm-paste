@@ -29,7 +29,7 @@ export const useTheme = () => {
             }
         };
 
-        initializeTheme();
+        void initializeTheme();
     }, [api]);
 
     const setTheme = async (theme: ThemeMode) => {

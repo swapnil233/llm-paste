@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useElectron } from "../hooks/useElectron";
 import { useTheme } from "../hooks/useTheme";
 import { ToastProvider, useToast } from "../contexts/ToastContext";
@@ -7,14 +7,14 @@ import PreviewPane from "./PreviewPane";
 import ResizeHandle from "./ResizeHandle";
 import Toast from "./Toast";
 import Button from "./Button";
-import { IconMoon } from "@tabler/icons-react";
-import type { TreeNode, FilePreviewResult } from "../types";
+import { IconMoon, IconSun } from "@tabler/icons-react";
+import type { TreeNode } from "../types";
 
 const AppContent: React.FC = () => {
   const api = useElectron();
-  const { toggleTheme, isInitialized } = useTheme();
+  const { isDark, toggleTheme, isInitialized } = useTheme();
   const { showToast } = useToast();
-  const pendingPreviewRef = useRef<Promise<FilePreviewResult> | null>(null);
+  const previewRequestId = useRef(0);
 
   const [tree, setTree] = useState<TreeNode | null>(null);
   const [checkedPaths, setCheckedPaths] = useState<Set<string>>(new Set());
@@ -22,46 +22,53 @@ const AppContent: React.FC = () => {
   const [previewContent, setPreviewContent] = useState("");
   const [tokenCount, setTokenCount] = useState(0);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [currentTokenLimit, setCurrentTokenLimit] = useState(128000);
+  const [comparisonTokenLimit, setComparisonTokenLimit] = useState(128000);
 
-  // Convert checked paths to a stable key for the effect dependency
-  const checkedPathsKey = Array.from(checkedPaths).sort().join("\n");
+  const checkedPathsList = useMemo(
+    () => Array.from(checkedPaths).sort(),
+    [checkedPaths]
+  );
+  const checkedPathsKey = useMemo(
+    () => checkedPathsList.join("\n"),
+    [checkedPathsList]
+  );
 
   // Generate preview whenever checked files change
   useEffect(() => {
-    const generatePreview = async () => {
-      const selectedFiles = Array.from(checkedPaths);
+    const run = async () => {
+      const requestId = ++previewRequestId.current;
 
-      if (selectedFiles.length === 0) {
+      if (checkedPathsList.length === 0) {
         setPreviewContent("");
         setTokenCount(0);
+        setTokenCounts({});
+        setIsLoadingPreview(false);
         return;
       }
 
       setIsLoadingPreview(true);
+
       try {
-        const previewPromise = api.generatePreview(selectedFiles, []);
-        pendingPreviewRef.current = previewPromise;
+        const result = await api.generatePreview(checkedPathsList, []);
+        if (previewRequestId.current !== requestId) return;
 
-        const result = await previewPromise;
-
-        if (pendingPreviewRef.current === previewPromise) {
-          setPreviewContent(result.content);
-          setTokenCount(result.tokenCount);
-          setTokenCounts(result.fileTokenCounts);
-        }
+        setPreviewContent(result.content);
+        setTokenCount(result.tokenCount);
+        setTokenCounts(result.fileTokenCounts);
       } catch (error) {
+        if (previewRequestId.current !== requestId) return;
         console.error("Error generating preview:", error);
-        if (pendingPreviewRef.current) {
-          setPreviewContent("");
-          setTokenCount(0);
-        }
+        setPreviewContent("");
+        setTokenCount(0);
+        setTokenCounts({});
       } finally {
-        setIsLoadingPreview(false);
+        if (previewRequestId.current === requestId) {
+          setIsLoadingPreview(false);
+        }
       }
     };
 
-    generatePreview();
+    void run();
   }, [checkedPathsKey, api]);
 
   const handleOpenProject = useCallback(async () => {
@@ -103,7 +110,7 @@ const AppContent: React.FC = () => {
               </div>
               <Button
                 variant="ghost"
-                icon={IconMoon}
+                icon={isDark ? IconSun : IconMoon}
                 onClick={toggleTheme}
                 className="!p-2"
                 aria-label="Toggle theme"
@@ -132,8 +139,8 @@ const AppContent: React.FC = () => {
               content={previewContent}
               tokenCount={tokenCount}
               isLoading={isLoadingPreview}
-              currentTokenLimit={currentTokenLimit}
-              onTokenLimitChange={setCurrentTokenLimit}
+              comparisonTokenLimit={comparisonTokenLimit}
+              onTokenLimitChange={setComparisonTokenLimit}
             />
           </div>
 

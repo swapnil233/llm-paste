@@ -1,7 +1,4 @@
 import React, { useState, useCallback, useRef } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
 import { IconCopy, IconDeviceFloppy } from "@tabler/icons-react";
 import { useElectron } from "../hooks/useElectron";
 import { useToast } from "../contexts/ToastContext";
@@ -12,7 +9,7 @@ interface PreviewPaneProps {
   content: string;
   tokenCount: number;
   isLoading: boolean;
-  currentTokenLimit: number;
+  comparisonTokenLimit: number;
   onTokenLimitChange: (limit: number) => void;
 }
 
@@ -26,22 +23,20 @@ const PreviewPane: React.FC<PreviewPaneProps> = ({
   content,
   tokenCount,
   isLoading,
-  currentTokenLimit,
+  comparisonTokenLimit,
   onTokenLimitChange,
 }) => {
   const api = useElectron();
   const { showToast } = useToast();
   const [isCopying, setIsCopying] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const previewRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLPreElement>(null);
 
   const hasContent = content.length > 0;
-  const percentage = Math.min((tokenCount / currentTokenLimit) * 100, 100);
-  const totalLines = content.split("\n").length;
-
-  // Performance optimization: disable syntax highlighting for very large content
-  const MAX_LINES_FOR_HIGHLIGHT = 8000;
-  const shouldHighlight = totalLines < MAX_LINES_FOR_HIGHLIGHT;
+  const percentage = Math.min(
+    (tokenCount / comparisonTokenLimit) * 100,
+    100
+  );
 
   const handleCopy = useCallback(async () => {
     if (!hasContent || isCopying) return;
@@ -65,7 +60,10 @@ const PreviewPane: React.FC<PreviewPaneProps> = ({
       const result = await api.combineFiles(content);
       showToast(`Saved to ${result.dest}`, "success", 5000);
     } catch (error) {
-      showToast(`Error saving file: ${error}`, "error");
+      const msg = error instanceof Error ? error.message : String(error);
+      if (!msg.includes("Save cancelled")) {
+        showToast(`Error saving file: ${msg}`, "error");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -99,14 +97,14 @@ const PreviewPane: React.FC<PreviewPaneProps> = ({
                 <span className="text-base font-medium text-gray-700 dark:text-gray-300">
                   {isLoading
                     ? "Calculating..."
-                    : `${tokenCount.toLocaleString()} / ${currentTokenLimit.toLocaleString()}`}
+                    : `${tokenCount.toLocaleString()} / ${comparisonTokenLimit.toLocaleString()} tokens`}
                 </span>
               </div>
               <select
-                value={currentTokenLimit}
+                value={comparisonTokenLimit}
                 onChange={handleTokenLimitChange}
                 className="text-base bg-white dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 text-gray-700 dark:text-gray-300"
-                aria-label="Select token limit for comparison"
+                aria-label="Compare token count against model context limit"
               >
                 {TOKEN_LIMITS.map((limit) => (
                   <option key={limit.value} value={limit.value}>
@@ -145,7 +143,6 @@ const PreviewPane: React.FC<PreviewPaneProps> = ({
 
       {/* Content Area */}
       <div className="flex-1 overflow-hidden flex">
-        {/* Main Content */}
         <div className="flex-1 overflow-hidden p-4">
           {isLoading ? (
             <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
@@ -157,31 +154,12 @@ const PreviewPane: React.FC<PreviewPaneProps> = ({
               </div>
             </div>
           ) : hasContent ? (
-            <div
-              className="preview-content h-full overflow-y-auto text-base bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-4"
+            <pre
+              className="preview-content h-full overflow-y-auto text-sm font-mono bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200"
               ref={previewRef}
             >
-              {shouldHighlight ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                  components={{
-                    pre: ({ ...props }) => (
-                      <pre
-                        {...props}
-                        className="overflow-x-auto rounded bg-gray-800 text-gray-100 p-4 my-4"
-                      />
-                    ),
-                  }}
-                >
-                  {content}
-                </ReactMarkdown>
-              ) : (
-                <pre className="preview-content-raw whitespace-pre-wrap font-mono text-sm p-4">
-                  {content}
-                </pre>
-              )}
-            </div>
+              {content}
+            </pre>
           ) : (
             <div className="text-base text-gray-500 dark:text-gray-400 text-center py-8">
               Combined content will appear here when you select files
