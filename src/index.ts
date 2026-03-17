@@ -35,6 +35,13 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
+// Returns the shortest backtick fence that doesn't appear in the content
+function getCodeFence(content: string): string {
+  let len = 3;
+  while (content.includes('`'.repeat(len))) len++;
+  return '`'.repeat(len);
+}
+
 // Helper function to deduplicate and validate file paths
 function getUniqueExistingFiles(files: string[]): Set<string> {
   return new Set(
@@ -196,7 +203,8 @@ app.whenReady().then(() => {
       const ext = path.extname(file).slice(1);
       try {
         const content = fs.readFileSync(file, 'utf-8');
-        const formattedContent = `${file}\n\`\`\`${ext}\n${content.trimEnd()}\n\`\`\`\n\n`;
+        const fence = getCodeFence(content);
+        const formattedContent = `${file}\n${fence}${ext}\n${content.trimEnd()}\n${fence}\n\n`;
         output += formattedContent;
         fileContents.push({ key: file, formattedContent });
       } catch (error) {
@@ -208,7 +216,8 @@ app.whenReady().then(() => {
     // Add drag-and-drop files content
     dragDropFiles.forEach((fileData) => {
       const ext = path.extname(fileData.name).slice(1);
-      const formattedContent = `${fileData.name}\n\`\`\`${ext}\n${fileData.content.trimEnd()}\n\`\`\`\n\n`;
+      const fence = getCodeFence(fileData.content);
+      const formattedContent = `${fileData.name}\n${fence}${ext}\n${fileData.content.trimEnd()}\n${fence}\n\n`;
       output += formattedContent;
       fileContents.push({ key: fileData.name, formattedContent });
     });
@@ -256,7 +265,8 @@ app.whenReady().then(() => {
           try {
             const content = fs.readFileSync(filePath, 'utf-8');
             const ext = path.extname(filePath).slice(1);
-            const formattedContent = `${filePath}\n\`\`\`${ext}\n${content.trimEnd()}\n\`\`\`\n\n`;
+            const fence = getCodeFence(content);
+            const formattedContent = `${filePath}\n${fence}${ext}\n${content.trimEnd()}\n${fence}\n\n`;
             tokenCounts[filePath] = encoding.encode(formattedContent).length;
           } catch (error) {
             console.error(`Error reading file ${filePath}:`, error);
@@ -268,7 +278,8 @@ app.whenReady().then(() => {
       // Calculate token counts for drag-and-drop files
       for (const fileData of dragDropFiles) {
         const ext = path.extname(fileData.name).slice(1);
-        const formattedContent = `${fileData.name}\n\`\`\`${ext}\n${fileData.content.trimEnd()}\n\`\`\`\n\n`;
+        const fence = getCodeFence(fileData.content);
+        const formattedContent = `${fileData.name}\n${fence}${ext}\n${fileData.content.trimEnd()}\n${fence}\n\n`;
         tokenCounts[fileData.name] = encoding.encode(formattedContent).length;
       }
 
