@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ElectronAPI } from '../../preload';
+import type { ElectronAPI } from '../../shared/ipc';
 
 export const useElectron = (): ElectronAPI => {
     return useMemo(() => {
