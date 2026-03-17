@@ -111,7 +111,7 @@ const Button: React.FC<ButtonProps> = ({
   return (
     <button className={combinedClasses} disabled={isDisabled} {...props}>
       {icon && iconPosition === "left" && icon}
-      {children && <span className={icon ? "" : ""}>{children}</span>}
+      {children && <span>{children}</span>}
       {icon && iconPosition === "right" && icon}
     </button>
   );

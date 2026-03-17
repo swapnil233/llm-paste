@@ -2,53 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import highlight.js theme for syntax highlighting */
-@import "highlight.js/styles/github-dark.css";
-
-/* Ensure minimum font size of 16px for all text */
 @layer base {
   html {
     font-size: 16px;
-  }
-
-  /* Override Tailwind's small text classes to meet minimum 16px requirement */
-  .text-sm {
-    font-size: 16px !important;
-  }
-
-  .text-xs {
-    font-size: 16px !important;
-  }
-}
-
-/* Custom component classes using @apply for consistency */
-@layer components {
-  .btn-primary {
-    @apply bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm;
-  }
-
-  .btn-outline {
-    @apply border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
-  .btn-danger {
-    @apply bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
-  .toast {
-    @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 max-w-sm transform transition-all duration-300 ease-in-out;
-  }
-
-  .toast-success {
-    @apply border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20;
-  }
-
-  .toast-error {
-    @apply border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20;
-  }
-
-  .toast-info {
-    @apply border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20;
   }
 }
 
@@ -60,50 +16,7 @@
   line-height: 1.4;
 }
 
-/* Raw content fallback for very large files */
-.preview-content-raw {
-  white-space: pre-wrap;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 16px;
-  line-height: 1.4;
-  color: rgb(243 244 246); /* gray-100 */
-  background-color: rgb(31 41 55); /* gray-800 */
-}
-
-/* Custom styling for syntax highlighted code blocks */
-.hljs {
-  font-size: 16px;
-  line-height: 1.5;
-}
-
-/* Override some highlight.js styles to match our design */
-.preview-content .hljs {
-  background: transparent !important;
-}
-
-.preview-content pre {
-  overflow-x: auto;
-  border-radius: 0.375rem;
-  background-color: rgb(31 41 55) !important; /* gray-800 */
-  color: rgb(243 244 246) !important; /* gray-100 */
-  padding: 1rem;
-  margin: 1rem 0;
-}
-
-/* Styling for markdown content in preview */
-.preview-content p {
-  margin: 0.5rem 0;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 16px;
-  line-height: 1.4;
-  color: rgb(75 85 99); /* gray-600 for light mode */
-}
-
-.dark .preview-content p {
-  color: rgb(209 213 219); /* gray-300 for dark mode */
-}
-
-/* Custom scrollbar for dark mode */
+/* Custom scrollbar for preview */
 .preview-content::-webkit-scrollbar {
   width: 8px;
 }
@@ -114,28 +27,6 @@
 
 .preview-content::-webkit-scrollbar-thumb {
   @apply bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-500;
-}
-
-/* Resize handle styling */
-#resizeHandle {
-  position: relative;
-}
-
-#resizeHandle::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 4px;
-  height: 20px;
-  background: currentColor;
-  border-radius: 2px;
-  opacity: 0.3;
-}
-
-#resizeHandle:hover::after {
-  opacity: 0.6;
 }
 
 /* Toast animations */

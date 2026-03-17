@@ -40,7 +40,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
       type: "success" | "error" | "info" = "info",
       duration = 3000
     ) => {
-      const id = Math.random().toString(36).substring(2);
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const newToast: ToastMessage = { id, message, type, duration };
 
       setToasts((prev) => [...prev, newToast]);
