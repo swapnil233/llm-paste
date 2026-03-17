@@ -1,3 +1,10 @@
+export interface TreeNode {
+    name: string;
+    path: string;
+    type: 'file' | 'directory';
+    children?: TreeNode[];
+}
+
 export interface FilePreviewResult {
     content: string;
     tokenCount: number;

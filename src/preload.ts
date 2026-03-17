@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 // Define the API interface for better type safety
 interface ElectronAPI {
+    openProject: () => Promise<import('./renderer/types').TreeNode | null>;
     selectFiles: () => Promise<string[]>;
     selectFolders: () => Promise<string[]>;
     generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => Promise<{ content: string; tokenCount: number; fileCount: number; files: string[]; fileTokenCounts: Record<string, number> }>;
@@ -14,6 +15,7 @@ interface ElectronAPI {
 
 // Create the API object
 const api: ElectronAPI = {
+    openProject: () => ipcRenderer.invoke('project:openProject'),
     selectFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog:openFiles'),
     selectFolders: (): Promise<string[]> => ipcRenderer.invoke('dialog:openFolders'),
     generatePreview: (files: string[], dragDropFiles: Array<{ name: string, content: string }>) => ipcRenderer.invoke('files:generatePreview', files, dragDropFiles),

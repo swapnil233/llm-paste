@@ -1,31 +1,38 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useElectron } from "../hooks/useElectron";
 import { useTheme } from "../hooks/useTheme";
-import { ToastProvider } from "../contexts/ToastContext";
-import FileList from "./FileList";
+import { ToastProvider, useToast } from "../contexts/ToastContext";
+import ProjectTree from "./ProjectTree";
 import PreviewPane from "./PreviewPane";
 import ResizeHandle from "./ResizeHandle";
 import Toast from "./Toast";
 import Button from "./Button";
 import { IconMoon } from "@tabler/icons-react";
-import type { DragDropFile, FilePreviewResult, AppFile } from "../types";
+import type { TreeNode, FilePreviewResult } from "../types";
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const api = useElectron();
   const { toggleTheme, isInitialized } = useTheme();
+  const { showToast } = useToast();
   const pendingPreviewRef = useRef<Promise<FilePreviewResult> | null>(null);
 
-  // Unified file state management
-  const [files, setFiles] = useState<AppFile[]>([]);
+  const [tree, setTree] = useState<TreeNode | null>(null);
+  const [checkedPaths, setCheckedPaths] = useState<Set<string>>(new Set());
+  const [tokenCounts, setTokenCounts] = useState<Record<string, number>>({});
   const [previewContent, setPreviewContent] = useState("");
   const [tokenCount, setTokenCount] = useState(0);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [currentTokenLimit, setCurrentTokenLimit] = useState(128000);
 
-  // Generate preview whenever files change (includes per-file token counts)
+  // Convert checked paths to a stable key for the effect dependency
+  const checkedPathsKey = Array.from(checkedPaths).sort().join("\n");
+
+  // Generate preview whenever checked files change
   useEffect(() => {
     const generatePreview = async () => {
-      if (files.length === 0) {
+      const selectedFiles = Array.from(checkedPaths);
+
+      if (selectedFiles.length === 0) {
         setPreviewContent("");
         setTokenCount(0);
         return;
@@ -33,34 +40,15 @@ const App: React.FC = () => {
 
       setIsLoadingPreview(true);
       try {
-        // Convert unified files back to the format expected by the API
-        const selectedFiles = files
-          .filter((f) => f.type === "selected")
-          .map((f) => f.path);
-        const dragDropFiles = files
-          .filter((f) => f.type === "dropped" && f.content !== undefined)
-          .map((f) => ({ name: f.path, content: f.content }));
-
-        const previewPromise = api.generatePreview(
-          selectedFiles,
-          dragDropFiles
-        );
+        const previewPromise = api.generatePreview(selectedFiles, []);
         pendingPreviewRef.current = previewPromise;
 
         const result = await previewPromise;
 
-        // Only update state if this is still the latest request
         if (pendingPreviewRef.current === previewPromise) {
           setPreviewContent(result.content);
           setTokenCount(result.tokenCount);
-
-          // Update files with per-file token counts from the same response
-          setFiles((prev) =>
-            prev.map((file) => ({
-              ...file,
-              tokenCount: result.fileTokenCounts[file.path] || 0,
-            }))
-          );
+          setTokenCounts(result.fileTokenCounts);
         }
       } catch (error) {
         console.error("Error generating preview:", error);
@@ -74,72 +62,29 @@ const App: React.FC = () => {
     };
 
     generatePreview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files.length, api]); // Only trigger on file count changes, not tokenCount updates
+  }, [checkedPathsKey, api]);
 
-  // When selecting files
-  const handleFilesSelected = useCallback((paths: string[]) => {
-    setFiles((prev) => {
-      const newFiles = paths
-        .filter((path) => !prev.some((f) => f.path === path)) // Deduplicate
-        .map((path) => ({
-          id: `file-${Date.now()}-${Math.random()}`,
-          path,
-          type: "selected" as const,
-        }));
-      return [...prev, ...newFiles];
-    });
-  }, []);
+  const handleOpenProject = useCallback(async () => {
+    try {
+      const result = await api.openProject();
+      if (result) {
+        setTree(result as TreeNode);
+        setCheckedPaths(new Set());
+        setTokenCounts({});
+        showToast(`Opened project: ${result.name}`, "success");
+      }
+    } catch (error) {
+      showToast(`Error opening project: ${error}`, "error");
+    }
+  }, [api, showToast]);
 
-  // When selecting folders (same logic as files since folders are expanded to files)
-  const handleFoldersSelected = useCallback((paths: string[]) => {
-    setFiles((prev) => {
-      const newFiles = paths
-        .filter((path) => !prev.some((f) => f.path === path)) // Deduplicate
-        .map((path) => ({
-          id: `folder-${Date.now()}-${Math.random()}`,
-          path,
-          type: "selected" as const,
-        }));
-      return [...prev, ...newFiles];
-    });
-  }, []);
-
-  // When dropping files
-  const handleDragDropFilesAdded = useCallback(
-    (droppedFiles: DragDropFile[]) => {
-      setFiles((prev) => {
-        const newFiles = droppedFiles
-          .filter((dFile) => !prev.some((f) => f.path === dFile.name)) // Deduplicate
-          .map((dFile) => ({
-            id: `drop-${Date.now()}-${Math.random()}`,
-            path: dFile.name,
-            content: dFile.content,
-            type: "dropped" as const,
-          }));
-        return [...prev, ...newFiles];
-      });
-    },
-    []
-  );
-
-  const handleRemoveFile = useCallback((fileId: string) => {
-    setFiles((prev) => prev.filter((f) => f.id !== fileId));
-  }, []);
-
-  // Bulk remove filtered files
-  const handleRemoveFiltered = useCallback((ids: string[]) => {
-    setFiles((prev) => prev.filter((f) => !ids.includes(f.id)));
-  }, []);
-
-  const handleClearAll = useCallback(() => {
-    setFiles([]);
+  const handleCheckedChange = useCallback((paths: Set<string>) => {
+    setCheckedPaths(paths);
   }, []);
 
   return (
-    <ToastProvider>
+    <>
       {!isInitialized ? (
-        // Show loading screen while theme initializes
         <div className="h-screen flex items-center justify-center bg-gray-100">
           <div className="text-gray-600">Loading...</div>
         </div>
@@ -153,8 +98,7 @@ const App: React.FC = () => {
                   LLM Paste
                 </h1>
                 <p className="text-base text-gray-600 dark:text-gray-400">
-                  Select files from different folders and preview the combined
-                  output
+                  Open a project and select files to combine for LLM input
                 </p>
               </div>
               <Button
@@ -173,14 +117,12 @@ const App: React.FC = () => {
               data-resize-panel="left"
               style={{ width: "50%", minWidth: "300px", maxWidth: "70%" }}
             >
-              <FileList
-                files={files}
-                onFilesSelected={handleFilesSelected}
-                onFoldersSelected={handleFoldersSelected}
-                onDragDropFilesAdded={handleDragDropFilesAdded}
-                onRemoveFile={handleRemoveFile}
-                onRemoveFiltered={handleRemoveFiltered}
-                onClearAll={handleClearAll}
+              <ProjectTree
+                tree={tree}
+                checkedPaths={checkedPaths}
+                tokenCounts={tokenCounts}
+                onOpenProject={handleOpenProject}
+                onCheckedChange={handleCheckedChange}
               />
             </div>
 
@@ -198,6 +140,14 @@ const App: React.FC = () => {
           <Toast />
         </div>
       )}
+    </>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <ToastProvider>
+      <AppContent />
     </ToastProvider>
   );
 };

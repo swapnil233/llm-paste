@@ -84,6 +84,63 @@ function walkDir(dir: string): string[] {
   }
 }
 
+interface TreeNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: TreeNode[];
+}
+
+// Build a tree structure for a directory, filtering to supported code files
+function buildTree(dir: string): TreeNode | null {
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    const children: TreeNode[] = [];
+
+    // Sort: directories first, then files, both alphabetical
+    const sorted = [...entries].sort((a, b) => {
+      if (a.isDirectory() && !b.isDirectory()) return -1;
+      if (!a.isDirectory() && b.isDirectory()) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    for (const entry of sorted) {
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        if (IGNORED_DIRS.has(entry.name)) continue;
+        const subtree = buildTree(fullPath);
+        if (subtree && subtree.children && subtree.children.length > 0) {
+          children.push(subtree);
+        }
+      } else {
+        if (IGNORED_FILES.has(entry.name.toLowerCase())) continue;
+
+        const extension = path.extname(entry.name).slice(1).toLowerCase();
+        const isCodeFile =
+          CODE_EXTENSIONS.has(extension) ||
+          extension === '' ||
+          /^(dockerfile|makefile|readme)/i.test(entry.name) ||
+          /^(schema\.prisma|prisma\.schema)$/i.test(entry.name);
+
+        if (isCodeFile) {
+          children.push({ name: entry.name, path: fullPath, type: 'file' });
+        }
+      }
+    }
+
+    return {
+      name: path.basename(dir),
+      path: dir,
+      type: 'directory',
+      children,
+    };
+  } catch (error) {
+    console.error(`Error building tree for ${dir}:`, error);
+    return null;
+  }
+}
+
 
 const createWindow = (): void => {
   // Load the previous window state or set defaults
@@ -121,7 +178,16 @@ const createWindow = (): void => {
 app.whenReady().then(() => {
   createWindow();
 
-  // IPC handler for 
+  // IPC handler to open a project folder and return its tree structure
+  ipcMain.handle('project:openProject', async (): Promise<TreeNode | null> => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      properties: ['openDirectory'],
+    });
+    if (canceled || filePaths.length === 0) return null;
+    return buildTree(filePaths[0]);
+  });
+
+  // IPC handler for
   ipcMain.handle('dialog:openFiles', async (): Promise<string[]> => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
